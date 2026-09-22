@@ -1,5 +1,5 @@
 # ascii_artist.py
-# __all__: 8
+# __all__: 18
 
 __all__ = [
     "generate_square",
@@ -10,16 +10,29 @@ __all__ = [
     "render_prompt_ascii",
     "SUPPORTED",
     "UNSUPPORTED",
+    "Node",
+    "Edge",
+    "Diagram",
+    "diagram",
+    "to_dict",
+    "from_dict",
+    "render_diagram",
+    "flow",
+    "branch",
+    "tree",
 ]
 
 import re
-from typing import Any, Callable, Protocol
+from dataclasses import dataclass
+from typing import Any, Callable, Iterable, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
         "square / triangle / diamond text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
+        "Diagram IR with deterministic flow / branch / tree rendering",
+        "lossless Diagram <-> dict serialization",
     ],
     "llm_adapter": [
         "plain callable generator",
@@ -51,6 +64,7 @@ UNSUPPORTED = {
     ],
     "parsing": [
         "full Markdown parsing",
+        "general-purpose graph layout or cyclic graph rendering",
         "fuzzy removal of arbitrary prose around generated art",
     ],
     "integration": [
@@ -58,6 +72,312 @@ UNSUPPORTED = {
         "repository-local runtime assets or configuration files",
     ],
 }
+
+
+@dataclass(frozen=True)
+class Node:
+    """One logical node in the diagram intermediate representation."""
+
+    id: str
+    label: str
+
+
+@dataclass(frozen=True)
+class Edge:
+    """One directed edge in the diagram intermediate representation."""
+
+    source: str
+    target: str
+
+
+@dataclass(frozen=True)
+class Diagram:
+    """Small immutable DAG-oriented intermediate representation."""
+
+    nodes: tuple[Node, ...]
+    edges: tuple[Edge, ...]
+
+
+def _normalize_node(value: str | Node) -> Node:
+    if isinstance(value, Node):
+        node = value
+    elif isinstance(value, str):
+        node = Node(value, value)
+    else:
+        raise TypeError("nodes must contain strings or Node values")
+    if not node.id or "\n" in node.id or "\r" in node.id:
+        raise ValueError("node id must be a non-empty single-line string")
+    if not node.label or "\n" in node.label or "\r" in node.label:
+        raise ValueError("node label must be a non-empty single-line string")
+    return node
+
+
+def _normalize_edge(value: tuple[str, str] | Edge) -> Edge:
+    if isinstance(value, Edge):
+        edge = value
+    elif isinstance(value, tuple) and len(value) == 2:
+        edge = Edge(str(value[0]), str(value[1]))
+    else:
+        raise TypeError("edges must contain Edge values or (source, target) tuples")
+    if not edge.source or not edge.target:
+        raise ValueError("edge endpoints must be non-empty")
+    return edge
+
+
+def _validate_dag(value: Diagram) -> None:
+    node_ids = [node.id for node in value.nodes]
+    if len(node_ids) != len(set(node_ids)):
+        raise ValueError("node ids must be unique")
+    known = set(node_ids)
+    for edge in value.edges:
+        if edge.source not in known or edge.target not in known:
+            raise ValueError("every edge endpoint must reference a known node")
+        if edge.source == edge.target:
+            raise ValueError("self edges are not supported")
+
+    indegree = {node_id: 0 for node_id in node_ids}
+    outgoing = {node_id: [] for node_id in node_ids}
+    for edge in value.edges:
+        indegree[edge.target] += 1
+        outgoing[edge.source].append(edge.target)
+
+    ready = [node_id for node_id in node_ids if indegree[node_id] == 0]
+    visited = 0
+    while ready:
+        current = ready.pop(0)
+        visited += 1
+        for target in outgoing[current]:
+            indegree[target] -= 1
+            if indegree[target] == 0:
+                ready.append(target)
+    if visited != len(node_ids):
+        raise ValueError("diagram must be acyclic")
+
+
+def _topological_layers(value: Diagram) -> list[list[str]]:
+    _validate_dag(value)
+    node_ids = [node.id for node in value.nodes]
+    indegree = {node_id: 0 for node_id in node_ids}
+    outgoing = {node_id: [] for node_id in node_ids}
+    for edge in value.edges:
+        indegree[edge.target] += 1
+        outgoing[edge.source].append(edge.target)
+
+    remaining = set(node_ids)
+    layers: list[list[str]] = []
+    while remaining:
+        layer = [node_id for node_id in node_ids if node_id in remaining and indegree[node_id] == 0]
+        if not layer:
+            raise ValueError("diagram must be acyclic")
+        layers.append(layer)
+        for source in layer:
+            remaining.remove(source)
+            for target in outgoing[source]:
+                indegree[target] -= 1
+    return layers
+
+
+def diagram(
+    nodes: Iterable[str | Node],
+    edges: Iterable[tuple[str, str] | Edge] = (),
+) -> Diagram:
+    """Build and validate a normalized DAG intermediate representation."""
+
+    value = Diagram(
+        tuple(_normalize_node(node) for node in nodes),
+        tuple(_normalize_edge(edge) for edge in edges),
+    )
+    _validate_dag(value)
+    return value
+
+
+def to_dict(value: Diagram) -> dict[str, Any]:
+    """Serialize a Diagram losslessly to JSON-compatible builtins."""
+
+    _validate_dag(value)
+    return {
+        "nodes": [{"id": node.id, "label": node.label} for node in value.nodes],
+        "edges": [{"source": edge.source, "target": edge.target} for edge in value.edges],
+    }
+
+
+def from_dict(value: Mapping[str, Any]) -> Diagram:
+    """Deserialize the canonical dictionary form back into a Diagram."""
+
+    if not isinstance(value, Mapping):
+        raise TypeError("diagram data must be a mapping")
+    raw_nodes = value.get("nodes", ())
+    raw_edges = value.get("edges", ())
+    if not isinstance(raw_nodes, (list, tuple)) or not isinstance(raw_edges, (list, tuple)):
+        raise TypeError("nodes and edges must be sequences")
+
+    nodes: list[Node] = []
+    for raw in raw_nodes:
+        if not isinstance(raw, Mapping):
+            raise TypeError("serialized nodes must be mappings")
+        node_id = raw.get("id")
+        label = raw.get("label")
+        if not isinstance(node_id, str) or not isinstance(label, str):
+            raise TypeError("serialized node id/label must be strings")
+        nodes.append(Node(node_id, label))
+
+    edges: list[Edge] = []
+    for raw in raw_edges:
+        if not isinstance(raw, Mapping):
+            raise TypeError("serialized edges must be mappings")
+        source = raw.get("source")
+        target = raw.get("target")
+        if not isinstance(source, str) or not isinstance(target, str):
+            raise TypeError("serialized edge source/target must be strings")
+        edges.append(Edge(source, target))
+    return diagram(nodes, edges)
+
+
+def _charset(name: str) -> dict[str, str]:
+    if name == "unicode":
+        return {"down": "↓", "tee": "├", "last": "└", "h": "─", "arrow": "→", "pipe": "│"}
+    if name == "ascii":
+        return {"down": "v", "tee": "+", "last": "\\", "h": "-", "arrow": ">", "pipe": "|"}
+    raise ValueError("charset must be 'unicode' or 'ascii'")
+
+
+def render_diagram(value: Diagram, *, charset: str = "unicode") -> str:
+    """Render any DAG as an exact adjacency-oriented text representation.
+
+    Specialized convenience renderers such as flow() and branch() may choose a
+    prettier topology-specific layout. This generic renderer prioritizes edge
+    correctness over pretending to be a full graph-layout engine.
+    """
+
+    chars = _charset(charset)
+    _validate_dag(value)
+    labels = {node.id: node.label for node in value.nodes}
+    outgoing = {node.id: [] for node in value.nodes}
+    for edge in value.edges:
+        outgoing[edge.source].append(edge.target)
+
+    lines: list[str] = []
+    for node in value.nodes:
+        lines.append(labels[node.id])
+        targets = outgoing[node.id]
+        for index, target in enumerate(targets):
+            prefix = chars["last"] if index == len(targets) - 1 else chars["tee"]
+            lines.append(f"{prefix}{chars['h']}{chars['arrow']} {labels[target]}")
+    return "\n".join(lines)
+
+
+def flow(items: Iterable[str], *, charset: str = "unicode") -> str:
+    """Render a deterministic vertical linear flow."""
+
+    labels = [str(item) for item in items]
+    if not labels:
+        return ""
+    if any(not label or "\n" in label or "\r" in label for label in labels):
+        raise ValueError("flow labels must be non-empty single-line strings")
+    chars = _charset(charset)
+    nodes = [Node(str(index), label) for index, label in enumerate(labels)]
+    edges = [Edge(str(index), str(index + 1)) for index in range(len(nodes) - 1)]
+    _validate_dag(Diagram(tuple(nodes), tuple(edges)))
+    return f"\n {chars['down']}\n".join(labels)
+
+
+def branch(
+    root: str,
+    branches: Iterable[str],
+    target: str | None = None,
+    *,
+    charset: str = "unicode",
+) -> str:
+    """Render a one-to-many, optionally many-to-one, topology."""
+
+    branch_labels = [str(label) for label in branches]
+    labels = [root, *branch_labels] + ([target] if target is not None else [])
+    if any(not isinstance(label, str) or not label or "\n" in label or "\r" in label for label in labels):
+        raise ValueError("branch labels must be non-empty single-line strings")
+    if not branch_labels:
+        return root if target is None else flow([root, target], charset=charset)
+
+    nodes = [Node("root", root)]
+    nodes.extend(Node(f"branch_{index}", label) for index, label in enumerate(branch_labels))
+    edges = [Edge("root", f"branch_{index}") for index in range(len(branch_labels))]
+    if target is not None:
+        nodes.append(Node("target", target))
+        edges.extend(Edge(f"branch_{index}", "target") for index in range(len(branch_labels)))
+    _validate_dag(Diagram(tuple(nodes), tuple(edges)))
+
+    chars = _charset(charset)
+    gap = 4
+    branch_line = (" " * gap).join(branch_labels)
+    centers: list[int] = []
+    cursor = 0
+    for label in branch_labels:
+        centers.append(cursor + len(label) // 2)
+        cursor += len(label) + gap
+    total_width = len(branch_line)
+    root_start = max(0, (total_width - len(root)) // 2)
+    root_line = " " * root_start + root
+
+    connector = [" "] * max(total_width, root_start + len(root))
+    root_center = root_start + len(root) // 2
+    left, right = centers[0], centers[-1]
+    if left == right:
+        connector[left] = chars["pipe"]
+    else:
+        for pos in range(left, right + 1):
+            connector[pos] = chars["h"]
+        connector[root_center] = "┼" if charset == "unicode" else "+"
+        connector[left] = "┌" if charset == "unicode" else "+"
+        connector[right] = "┐" if charset == "unicode" else "+"
+    arrows = [" "] * len(connector)
+    for center in centers:
+        arrows[center] = chars["down"]
+
+    lines = [root_line, " " * root_center + chars["pipe"], "".join(connector).rstrip(), "".join(arrows).rstrip(), branch_line]
+    if target is not None:
+        join = [" "] * len(connector)
+        if left == right:
+            join[left] = chars["pipe"]
+        else:
+            for pos in range(left, right + 1):
+                join[pos] = chars["h"]
+            join[left] = "└" if charset == "unicode" else "+"
+            join[right] = "┘" if charset == "unicode" else "+"
+            join[root_center] = "┴" if charset == "unicode" else "+"
+        target_start = max(0, (total_width - len(target)) // 2)
+        lines.extend(["".join(join).rstrip(), " " * root_center + chars["down"], " " * target_start + target])
+    return "\n".join(lines)
+
+
+def _tree_lines(
+    value: Mapping[str, Any],
+    *,
+    prefix: str,
+    charset: str,
+) -> list[str]:
+    chars = _charset(charset)
+    lines: list[str] = []
+    entries = list(value.items())
+    for index, (label, children) in enumerate(entries):
+        last = index == len(entries) - 1
+        elbow = chars["last"] if last else chars["tee"]
+        lines.append(f"{prefix}{elbow}{chars['h']}{chars['arrow']} {label}")
+        child_prefix = prefix + ("   " if last else f"{chars['pipe']}  ")
+        if children:
+            if not isinstance(children, Mapping):
+                raise TypeError("tree children must be mappings")
+            lines.extend(_tree_lines(children, prefix=child_prefix, charset=charset))
+    return lines
+
+
+def tree(root: str, children: Mapping[str, Any], *, charset: str = "unicode") -> str:
+    """Render a deterministic nested tree from mapping-shaped children."""
+
+    if not root or "\n" in root or "\r" in root:
+        raise ValueError("tree root must be a non-empty single-line string")
+    if not isinstance(children, Mapping):
+        raise TypeError("tree children must be a mapping")
+    return "\n".join([root, *_tree_lines(children, prefix="", charset=charset)])
+
 
 _ASCII_TEMPLATES = {
     "icon_ironmate": "   _______\n  /       \\\n | () | () |\n |   ___   |\n  \\_______/\n  [ IRONMATE ]\n",
