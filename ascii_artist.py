@@ -829,8 +829,6 @@ def render_prompt_ascii(
     )
 
     return _sanitize_ascii_output(_generated_text(generator, final_prompt))
-)
-_MERMAID_EDGE_RE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*-->\s*([A-Za-z0-9_.-]+)\s*$")
 
 
 def from_mermaid(text: str) -> Diagram:
