@@ -289,7 +289,7 @@ def from_edges(
     *,
     labels: Mapping[str, str] | None = None,
 ) -> Diagram:
-    """Build Diagram from edge list, deriving nodes in first-seen order."""
+    """Build Diagram from edges in first-seen insertion order (Python 3.7+)."""
 
     normalized = [_normalize_edge(edge) for edge in edges]
     seen: dict[str, None] = {}
@@ -316,7 +316,7 @@ def from_adjacency(
     *,
     labels: Mapping[str, str] | None = None,
 ) -> Diagram:
-    """Build Diagram from adjacency mapping."""
+    """Build Diagram preserving first-seen insertion order (Python 3.7+)."""
 
     if not isinstance(value, Mapping):
         raise TypeError("adjacency input must be a mapping")
@@ -356,8 +356,14 @@ def _unquote_label(text: str) -> str:
     return "".join(result)
 
 
+def _unquote_json_string(encoded: str) -> str:
+    """Decode one JSON quoted-string layer used by Mermaid node metadata."""
+
+    return json.loads(f'"{encoded}"')
+
+
 def to_mermaid(value: Diagram, *, direction: str = "TD") -> str:
-    """Serialize to a small Mermaid flowchart subset. NORMALIZED round-trip."""
+    """Serialize a Mermaid subset using compact JSON node metadata for round-trip."""
 
     _validate_dag(value)
     if direction not in {"TD", "TB", "LR", "RL", "BT"}:
@@ -397,7 +403,7 @@ def from_mermaid(text: str) -> Diagram:
         node_match = _MERMAID_NODE_RE.fullmatch(line)
         if node_match:
             encoded_payload = node_match.group(2)
-            payload_text = json.loads(f'"{encoded_payload}"')
+            payload_text = _unquote_json_string(encoded_payload)
             payload = json.loads(payload_text)
             if not isinstance(payload, dict):
                 raise ValueError("Mermaid node payload must be an object")
@@ -436,6 +442,7 @@ def to_dot(value: Diagram) -> str:
     return "\n".join(lines)
 
 
+# Matches one quoted DOT token while allowing backslash-escaped characters.
 _DOT_TOKEN = r'"((?:\\.|[^"\\])*)"'
 _DOT_NODE_RE = re.compile(
     rf"^\s*{_DOT_TOKEN}\s+\[label={_DOT_TOKEN}\];\s*$"
@@ -489,7 +496,11 @@ _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 
 
 def from_markdown_outline(text: str) -> Diagram:
-    """Parse an ATX-heading tree subset into a Diagram."""
+    """Parse ATX headings; generated IDs are local n0, n1, ... identifiers.
+
+    Markdown carries no original Diagram IDs, so these generated IDs are a
+    normalized representation and must not be treated as preserved source IDs.
+    """
 
     if not isinstance(text, str):
         raise TypeError("Markdown outline input must be a string")
