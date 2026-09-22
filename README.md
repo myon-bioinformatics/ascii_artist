@@ -14,6 +14,10 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `get_template()`
 - `list_templates()`
 - `render_prompt_ascii()`
+- `diagram()` / `Node` / `Edge` / `Diagram`
+- `to_dict()` / `from_dict()`
+- `render_diagram()`
+- `flow()` / `branch()` / `tree()`
 
 ## Design
 
@@ -23,6 +27,91 @@ The product is a single file: `ascii_artist.py`.
 - no runtime dependency on package-specific support modules
 - usable by copying one file into another project
 - suitable for vendoring as `vendor/ascii_artist.py`
+
+
+## Diagram IR and transform pipeline
+
+Text diagrams use a small immutable intermediate representation instead of
+drawing directly from every public helper:
+
+\`\`\`text
+public input
+   |
+   v
+normalize / validate
+   |
+   v
+Diagram IR
+   |
+   +--> topology-specific layout
+   |
+   +--> generic exact edge rendering
+   |
+   +--> to_dict() / from_dict()
+\`\`\`
+
+\`Node\`, \`Edge\`, and \`Diagram\` are intentionally small. Public convenience
+helpers such as \`flow()\` and \`branch()\` build on the same graph contract,
+while internal helpers keep DAG validation, topology/layout decisions, and
+rendering separate.
+
+The first round-trip contract is lossless:
+
+\`\`\`python
+d = diagram(["LLM", "MCP", "Python"], [("LLM", "MCP"), ("MCP", "Python")])
+assert from_dict(to_dict(d)) == d
+\`\`\`
+
+`tree()` uses iterative traversal rather than Python recursion, so deeply nested mapping input is not limited by the interpreter recursion depth.
+
+Text rendering is not claimed to be reversible. Rendering may normalize spacing
+and, for generic DAGs, prioritizes exact edge representation over sophisticated
+graph routing.
+
+### Examples
+
+\`\`\`python
+print(flow(["LLM", "MCP", "Python", "Minecraft Adapter", "Paper/RCON", "Minecraft"]))
+\`\`\`
+
+\`\`\`text
+LLM
+ ↓
+MCP
+ ↓
+Python
+ ↓
+Minecraft Adapter
+ ↓
+Paper/RCON
+ ↓
+Minecraft
+\`\`\`
+
+\`\`\`python
+print(branch("Python API", ["RCON", "Paper bridge", "mcpi"], "Minecraft"))
+\`\`\`
+
+The same topology is also representable independently of rendering:
+
+\`\`\`python
+d = diagram(
+    ["Python API", "RCON", "Paper bridge", "mcpi", "Minecraft"],
+    [
+        ("Python API", "RCON"),
+        ("Python API", "Paper bridge"),
+        ("Python API", "mcpi"),
+        ("RCON", "Minecraft"),
+        ("Paper bridge", "Minecraft"),
+        ("mcpi", "Minecraft"),
+    ],
+)
+print(render_diagram(d))
+\`\`\`
+
+The design deliberately does **not** collapse all layouts into one
+\`_layout_everything()\` helper. Linear, branch, tree, and future layered-DAG
+layouts may remain separate while sharing the same IR and validation contract.
 
 ## Generator contract
 
@@ -43,9 +132,9 @@ Built-in templates include both Ironmate-derived entries and generic examples su
 
 The module exposes `SUPPORTED` and `UNSUPPORTED` dictionaries so the boundary is machine-readable as well as documented.
 
-Currently supported includes deterministic shape generation, Unicode string tokens, built-in templates, SDK-agnostic generator adapters, narrow wrapper sanitization, and single-file stdlib-only vendoring.
+Currently supported includes deterministic shape generation, Unicode string tokens, built-in templates, Diagram IR, lossless dict round trips, deterministic flow/branch/tree rendering, SDK-agnostic generator adapters, narrow wrapper sanitization, and single-file stdlib-only vendoring.
 
-Explicitly unsupported includes terminal-cell-perfect alignment for wide glyphs, ANSI/terminal capability handling, image decoding/rendering, full Markdown parsing, fuzzy prose deletion, and hard dependencies on a specific LLM SDK.
+Explicitly unsupported includes terminal-cell-perfect alignment for wide glyphs, ANSI/terminal capability handling, image decoding/rendering, full Markdown parsing, general-purpose/cyclic graph layout, fuzzy prose deletion, and hard dependencies on a specific LLM SDK.
 
 This boundary is intentional: when a new capability is added, update the stance and add a contract/regression test in the same change.
 

@@ -73,6 +73,103 @@ class AsciiArtistTests(unittest.TestCase):
             ascii_artist.UNSUPPORTED["layout"],
         )
 
+
+    def test_diagram_dict_round_trip_is_lossless(self):
+        original = ascii_artist.diagram(
+            [
+                ascii_artist.Node("llm", "LLM"),
+                ascii_artist.Node("mcp", "MCP"),
+                ascii_artist.Node("python", "Python"),
+            ],
+            [("llm", "mcp"), ("mcp", "python")],
+        )
+        self.assertEqual(ascii_artist.from_dict(ascii_artist.to_dict(original)), original)
+
+    def test_diagram_rejects_cycles_and_unknown_endpoints(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.diagram(["a", "b"], [("a", "b"), ("b", "a")])
+        with self.assertRaises(ValueError):
+            ascii_artist.diagram(["a"], [("a", "missing")])
+
+    def test_flow_unicode_and_ascii(self):
+        self.assertEqual(
+            ascii_artist.flow(["LLM", "MCP", "Python"]),
+            "LLM\n ↓\nMCP\n ↓\nPython",
+        )
+        self.assertEqual(
+            ascii_artist.flow(["LLM", "MCP"], charset="ascii"),
+            "LLM\n v\nMCP",
+        )
+
+    def test_branch_renders_one_to_many_to_one(self):
+        rendered = ascii_artist.branch(
+            "Python API",
+            ["RCON", "Paper bridge", "mcpi"],
+            "Minecraft",
+        )
+        self.assertIn("Python API", rendered)
+        self.assertIn("RCON", rendered)
+        self.assertIn("Paper bridge", rendered)
+        self.assertIn("mcpi", rendered)
+        self.assertIn("Minecraft", rendered)
+        self.assertIn("┼", rendered)
+
+    def test_tree_renders_nested_mapping(self):
+        rendered = ascii_artist.tree(
+            "LLM",
+            {
+                "MCP": {
+                    "Python": {
+                        "Minecraft Adapter": {},
+                    }
+                }
+            },
+        )
+        self.assertEqual(
+            rendered,
+            "LLM\n└─→ MCP\n   └─→ Python\n      └─→ Minecraft Adapter",
+        )
+
+    def test_generic_dag_renderer_preserves_all_edges(self):
+        value = ascii_artist.diagram(
+            ["api", "rcon", "paper", "mcpi", "minecraft"],
+            [
+                ("api", "rcon"),
+                ("api", "paper"),
+                ("api", "mcpi"),
+                ("rcon", "minecraft"),
+                ("paper", "minecraft"),
+                ("mcpi", "minecraft"),
+            ],
+        )
+        rendered = ascii_artist.render_diagram(value)
+        self.assertIn("├─→ rcon", rendered)
+        self.assertIn("├─→ paper", rendered)
+        self.assertIn("└─→ mcpi", rendered)
+        self.assertEqual(rendered.count("└─→ minecraft"), 3)
+
+
+    def test_tree_handles_very_deep_nesting_iteratively(self):
+        children = {}
+        current = children
+        for index in range(1200):
+            next_level = {}
+            current[f"n{index}"] = next_level
+            current = next_level
+        rendered = ascii_artist.tree("root", children)
+        self.assertIn("n1199", rendered)
+
+    def test_from_dict_reports_specific_bad_fields(self):
+        with self.assertRaisesRegex(TypeError, "node id must be str"):
+            ascii_artist.from_dict({"nodes": [{"id": 1, "label": "x"}], "edges": []})
+        with self.assertRaisesRegex(TypeError, "node 'x' label must be str"):
+            ascii_artist.from_dict({"nodes": [{"id": "x", "label": 1}], "edges": []})
+        with self.assertRaisesRegex(TypeError, "edge source must be str"):
+            ascii_artist.from_dict({
+                "nodes": [{"id": "x", "label": "x"}],
+                "edges": [{"source": 1, "target": "x"}],
+            })
+
     def test_render_rejects_invalid_generator_result(self):
         with self.assertRaises(TypeError):
             ascii_artist.render_prompt_ascii("x", lambda _prompt: 123)
