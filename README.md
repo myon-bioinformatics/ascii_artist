@@ -39,6 +39,10 @@ The `char` argument used by shape generators is a non-empty, single-line **token
 
 Built-in templates include both Ironmate-derived entries and generic examples such as `cat`, `heart`, and `tree`.
 
+## Failure-mode documentation
+
+Known design traps and real CI failures are recorded in [`docs/antipatterns.md`](docs/antipatterns.md). New recurring failures should get a stable ID and, where practical, a regression test rather than only a prose note.
+
 ## Vendoring
 
 Consumers may copy the single `ascii_artist.py` file into their own `vendor/` directory and pin the source revision without pulling additional runtime dependencies.
