@@ -217,8 +217,14 @@ def from_dict(value: Mapping[str, Any]) -> Diagram:
             raise TypeError("serialized nodes must be mappings")
         node_id = raw.get("id")
         label = raw.get("label")
-        if not isinstance(node_id, str) or not isinstance(label, str):
-            raise TypeError("serialized node id/label must be strings")
+        if not isinstance(node_id, str):
+            raise TypeError(
+                f"serialized node id must be str, got {type(node_id).__name__}"
+            )
+        if not isinstance(label, str):
+            raise TypeError(
+                f"serialized node {node_id!r} label must be str, got {type(label).__name__}"
+            )
         nodes.append(Node(node_id, label))
 
     edges: list[Edge] = []
@@ -227,8 +233,14 @@ def from_dict(value: Mapping[str, Any]) -> Diagram:
             raise TypeError("serialized edges must be mappings")
         source = raw.get("source")
         target = raw.get("target")
-        if not isinstance(source, str) or not isinstance(target, str):
-            raise TypeError("serialized edge source/target must be strings")
+        if not isinstance(source, str):
+            raise TypeError(
+                f"serialized edge source must be str, got {type(source).__name__}"
+            )
+        if not isinstance(target, str):
+            raise TypeError(
+                f"serialized edge target must be str, got {type(target).__name__}"
+            )
         edges.append(Edge(source, target))
     return diagram(nodes, edges)
 
@@ -321,8 +333,10 @@ def branch(
     root_center = root_start + len(root) // 2
     left, right = centers[0], centers[-1]
     if left == right:
+        # Single-branch case: keep a straight vertical connector.
         connector[left] = chars["pipe"]
     else:
+        # Multi-branch case: span the first/last branch centers and split at root.
         for pos in range(left, right + 1):
             connector[pos] = chars["h"]
         connector[root_center] = "┼" if charset == "unicode" else "+"
@@ -336,8 +350,11 @@ def branch(
     if target is not None:
         join = [" "] * len(connector)
         if left == right:
+            # Single-branch convergence is a straight vertical path.
             join[left] = chars["pipe"]
         else:
+            # Multi-branch convergence mirrors the fan-out above.
+
             for pos in range(left, right + 1):
                 join[pos] = chars["h"]
             join[left] = "└" if charset == "unicode" else "+"
@@ -354,20 +371,36 @@ def _tree_lines(
     prefix: str,
     charset: str,
 ) -> list[str]:
+    """Render mapping-shaped descendants iteratively to avoid recursion limits."""
+
     chars = _charset(charset)
     lines: list[str] = []
-    entries = list(value.items())
-    for index, (label, children) in enumerate(entries):
+    stack: list[tuple[list[tuple[str, Any]], int, str]] = [
+        (list(value.items()), 0, prefix)
+    ]
+
+    while stack:
+        entries, index, current_prefix = stack.pop()
+        if index >= len(entries):
+            continue
+
+        label, children = entries[index]
         last = index == len(entries) - 1
         elbow = chars["last"] if last else chars["tee"]
-        lines.append(f"{prefix}{elbow}{chars['h']}{chars['arrow']} {label}")
-        child_prefix = prefix + ("   " if last else f"{chars['pipe']}  ")
+        lines.append(f"{current_prefix}{elbow}{chars['h']}{chars['arrow']} {label}")
+
+        # Resume siblings after this node's descendants.
+        stack.append((entries, index + 1, current_prefix))
+
         if children:
             if not isinstance(children, Mapping):
                 raise TypeError("tree children must be mappings")
-            lines.extend(_tree_lines(children, prefix=child_prefix, charset=charset))
-    return lines
+            child_prefix = current_prefix + (
+                "   " if last else f"{chars['pipe']}  "
+            )
+            stack.append((list(children.items()), 0, child_prefix))
 
+    return lines
 
 def tree(root: str, children: Mapping[str, Any], *, charset: str = "unicode") -> str:
     """Render a deterministic nested tree from mapping-shaped children."""
