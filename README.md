@@ -15,19 +15,18 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `list_templates()`
 - `render_prompt_ascii()`
 
-## Layout
+## Design
 
-```text
-.
-├─ ascii_artist.py
-├─ template_store.py
-├─ templates_ascii/
-└─ templates_prompt/
-```
+The product is a single file: `ascii_artist.py`.
+
+- standard library only
+- no runtime dependency on package-specific support modules
+- usable by copying one file into another project
+- suitable for vendoring as `vendor/ascii_artist.py`
 
 ## Vendoring
 
-Consumers that do not want a package dependency may copy `ascii_artist.py` into their own `vendor/` directory and pin the source revision in their normal dependency/update process.
+Consumers may copy the single `ascii_artist.py` file into their own `vendor/` directory and pin the source revision without pulling additional runtime dependencies.
 
 Ironmate uses this repository as the upstream source for its vendored ASCII-art module.
 
