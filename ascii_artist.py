@@ -462,7 +462,9 @@ def from_dot(text: str) -> Diagram:
             continue
         edge_match = _DOT_EDGE_RE.fullmatch(line)
         if edge_match:
-            edges.append(Edge(edge_match.group(1), edge_match.group(2)))
+            edges.append(
+                Edge(_unquote_label(edge_match.group(1)), _unquote_label(edge_match.group(2)))
+            )
             continue
         raise ValueError(f"unsupported DOT line: {line!r}")
     return diagram(nodes, edges)
