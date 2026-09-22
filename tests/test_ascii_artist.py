@@ -148,6 +148,28 @@ class AsciiArtistTests(unittest.TestCase):
         self.assertIn("└─→ mcpi", rendered)
         self.assertEqual(rendered.count("└─→ minecraft"), 3)
 
+
+    def test_tree_handles_very_deep_nesting_iteratively(self):
+        children = {}
+        current = children
+        for index in range(1200):
+            next_level = {}
+            current[f"n{index}"] = next_level
+            current = next_level
+        rendered = ascii_artist.tree("root", children)
+        self.assertIn("n1199", rendered)
+
+    def test_from_dict_reports_specific_bad_fields(self):
+        with self.assertRaisesRegex(TypeError, "node id must be str"):
+            ascii_artist.from_dict({"nodes": [{"id": 1, "label": "x"}], "edges": []})
+        with self.assertRaisesRegex(TypeError, "node 'x' label must be str"):
+            ascii_artist.from_dict({"nodes": [{"id": "x", "label": 1}], "edges": []})
+        with self.assertRaisesRegex(TypeError, "edge source must be str"):
+            ascii_artist.from_dict({
+                "nodes": [{"id": "x", "label": "x"}],
+                "edges": [{"source": 1, "target": "x"}],
+            })
+
     def test_render_rejects_invalid_generator_result(self):
         with self.assertRaises(TypeError):
             ascii_artist.render_prompt_ascii("x", lambda _prompt: 123)
