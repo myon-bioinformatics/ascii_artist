@@ -18,6 +18,13 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `to_dict()` / `from_dict()`
 - `render_diagram()`
 - `flow()` / `branch()` / `tree()`
+- `to_json()` / `from_json()`
+- `to_edges()` / `from_edges()`
+- `to_adjacency()` / `from_adjacency()`
+- `to_mermaid()` / `from_mermaid()`
+- `to_dot()` / `from_dot()`
+- `to_markdown_outline()` / `from_markdown_outline()`
+- `inventory()`
 
 ## Design
 
@@ -113,6 +120,40 @@ The design deliberately does **not** collapse all layouts into one
 \`_layout_everything()\` helper. Linear, branch, tree, and future layered-DAG
 layouts may remain separate while sharing the same IR and validation contract.
 
+
+## Converter contracts
+
+All converters pass through the same \`Diagram\` IR instead of converting
+formats pairwise.
+
+\`\`\`text
+JSON --------\
+edge list ----\
+adjacency ------> Diagram IR ------> ASCII / Unicode
+Mermaid -------/       |            Mermaid
+DOT ----------/        |            DOT
+Markdown outline       +----------> inventory
+\`\`\`
+
+Round-trip categories are explicit:
+
+- **LOSSLESS**: \`dict\`, canonical JSON.
+- **NORMALIZED**: edge-list / adjacency when labels are supplied, the supported
+  Mermaid flowchart subset, the supported DOT digraph subset, and ATX Markdown
+  outlines. Formatting may change while the supported graph meaning is kept.
+- **LOSSY**: edge-list / adjacency without a label mapping, rendered text
+  layouts, and Markdown outline conversion when original node IDs cannot be
+  represented.
+
+Mermaid support is intentionally limited to \`flowchart <direction>\`, explicit
+node declarations emitted by this module, and \`A --> B\` edges. DOT support is
+limited to the quoted \`digraph G\` form emitted by this module. Markdown input
+is an ATX-heading outline subset, not a general Markdown parser.
+
+This mirrors the sibling \`markdown\` library's converter philosophy: declare
+the supported subset, centralize the intermediate representation, and test the
+round-trip contract instead of claiming full-format compatibility.
+
 ## Generator contract
 
 `render_prompt_ascii(prompt, generator)` is intentionally SDK-agnostic. The second argument may be either:
@@ -132,7 +173,7 @@ Built-in templates include both Ironmate-derived entries and generic examples su
 
 The module exposes `SUPPORTED` and `UNSUPPORTED` dictionaries so the boundary is machine-readable as well as documented.
 
-Currently supported includes deterministic shape generation, Unicode string tokens, built-in templates, Diagram IR, lossless dict round trips, deterministic flow/branch/tree rendering, SDK-agnostic generator adapters, narrow wrapper sanitization, and single-file stdlib-only vendoring.
+Currently supported includes deterministic shape generation, Unicode string tokens, built-in templates, Diagram IR, lossless dict/JSON round trips, edge-list/adjacency adapters, Mermaid/DOT/Markdown-outline subset conversion, inventory, deterministic flow/branch/tree rendering, SDK-agnostic generator adapters, narrow wrapper sanitization, and single-file stdlib-only vendoring.
 
 Explicitly unsupported includes terminal-cell-perfect alignment for wide glyphs, ANSI/terminal capability handling, image decoding/rendering, full Markdown parsing, general-purpose/cyclic graph layout, fuzzy prose deletion, and hard dependencies on a specific LLM SDK.
 

@@ -170,6 +170,104 @@ class AsciiArtistTests(unittest.TestCase):
                 "edges": [{"source": 1, "target": "x"}],
             })
 
+
+    def test_json_round_trip_is_lossless(self):
+        original = ascii_artist.diagram(
+            [
+                ascii_artist.Node("llm", "LLM"),
+                ascii_artist.Node("mcp", "MCP"),
+                ascii_artist.Node("日本語", '日本語 "node"'),
+            ],
+            [("llm", "mcp"), ("mcp", "日本語")],
+        )
+        self.assertEqual(ascii_artist.from_json(ascii_artist.to_json(original)), original)
+
+    def test_edges_and_adjacency_adapters(self):
+        original = ascii_artist.diagram(
+            [
+                ascii_artist.Node("a", "A"),
+                ascii_artist.Node("b", "B"),
+                ascii_artist.Node("c", "C"),
+            ],
+            [("a", "b"), ("a", "c")],
+        )
+        self.assertEqual(ascii_artist.to_edges(original), [("a", "b"), ("a", "c")])
+        rebuilt = ascii_artist.from_edges(
+            ascii_artist.to_edges(original),
+            labels={"a": "A", "b": "B", "c": "C"},
+        )
+        self.assertEqual(rebuilt, original)
+        adjacency = ascii_artist.to_adjacency(original)
+        self.assertEqual(adjacency, {"a": ["b", "c"], "b": [], "c": []})
+        self.assertEqual(
+            ascii_artist.from_adjacency(
+                adjacency,
+                labels={"a": "A", "b": "B", "c": "C"},
+            ),
+            original,
+        )
+
+    def test_mermaid_round_trip_normalizes_supported_subset(self):
+        original = ascii_artist.diagram(
+            [
+                ascii_artist.Node("a", 'A "quoted"'),
+                ascii_artist.Node("b", "日本語"),
+            ],
+            [("a", "b")],
+        )
+        rendered = ascii_artist.to_mermaid(original)
+        self.assertTrue(rendered.startswith("flowchart TD"))
+        self.assertEqual(ascii_artist.from_mermaid(rendered), original)
+
+    def test_dot_round_trip_normalizes_supported_subset(self):
+        original = ascii_artist.diagram(
+            [
+                ascii_artist.Node("a", 'A "quoted"'),
+                ascii_artist.Node("b", "日本語"),
+            ],
+            [("a", "b")],
+        )
+        rendered = ascii_artist.to_dot(original)
+        self.assertTrue(rendered.startswith("digraph G {"))
+        self.assertEqual(ascii_artist.from_dot(rendered), original)
+
+    def test_markdown_outline_subset(self):
+        outline = "# Root\n## Child A\n### Leaf\n## Child B"
+        value = ascii_artist.from_markdown_outline(outline)
+        self.assertEqual(
+            [node.label for node in value.nodes],
+            ["Root", "Child A", "Leaf", "Child B"],
+        )
+        self.assertEqual(
+            ascii_artist.to_edges(value),
+            [("n0", "n1"), ("n1", "n2"), ("n0", "n3")],
+        )
+        rendered = ascii_artist.to_markdown_outline(value)
+        self.assertIn("# Root", rendered)
+        self.assertIn("## Child A", rendered)
+
+    def test_inventory_reports_roots_leaves_layers_and_depth(self):
+        value = ascii_artist.diagram(
+            ["a", "b", "c", "d"],
+            [("a", "b"), ("a", "c"), ("c", "d")],
+        )
+        report = ascii_artist.inventory(value)
+        self.assertEqual(report["nodes"], 4)
+        self.assertEqual(report["edges"], 3)
+        self.assertEqual(report["roots"], ["a"])
+        self.assertEqual(report["leaves"], ["b", "d"])
+        self.assertEqual(report["layers"], [["a"], ["b", "c"], ["d"]])
+        self.assertEqual(report["max_depth"], 3)
+        self.assertTrue(report["is_dag"])
+
+    def test_subset_parsers_reject_unsupported_lines(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.from_mermaid("flowchart TD\n    a ==> b")
+        with self.assertRaises(ValueError):
+            ascii_artist.from_dot("digraph G {\n  a -- b;\n}")
+        with self.assertRaises(ValueError):
+            ascii_artist.from_markdown_outline("# ok\nplain prose")
+
     def test_render_rejects_invalid_generator_result(self):
         with self.assertRaises(TypeError):
             ascii_artist.render_prompt_ascii("x", lambda _prompt: 123)
