@@ -340,6 +340,22 @@ def _quote_label(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _unquote_label(text: str) -> str:
+    result: list[str] = []
+    escaped = False
+    for char in text:
+        if escaped:
+            result.append(char)
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        else:
+            result.append(char)
+    if escaped:
+        result.append("\\")
+    return "".join(result)
+
+
 def to_mermaid(value: Diagram, *, direction: str = "TD") -> str:
     """Serialize to a small Mermaid flowchart subset. NORMALIZED round-trip."""
 
@@ -354,7 +370,466 @@ def to_mermaid(value: Diagram, *, direction: str = "TD") -> str:
     return "\n".join(lines)
 
 
-_MERMAID_NODE_RE = re.compile(r'^\s*([A-Za-z0-9_.-]+)\["((?:\\.|[^"])*)"\]\s*$')
+_MERMAID_NODE_RE = re.compile(r'^\s*([A-Za-z0-9_.-]+)\["((?:\\.|[^"])*)"\]\s*
+_MERMAID_EDGE_RE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*-->\s*([A-Za-z0-9_.-]+)\s*$")
+
+
+def from_mermaid(text: str) -> Diagram:
+    """Parse the flowchart subset emitted by to_mermaid()."""
+
+    if not isinstance(text, str):
+        raise TypeError("Mermaid input must be a string")
+    nodes: list[Node] = []
+    edges: list[Edge] = []
+    for index, line in enumerate(text.splitlines()):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if index == 0 and stripped.startswith("flowchart "):
+            continue
+        node_match = _MERMAID_NODE_RE.fullmatch(line)
+        if node_match:
+            nodes.append(Node(node_match.group(1), _unquote_label(node_match.group(2))))
+            continue
+        edge_match = _MERMAID_EDGE_RE.fullmatch(line)
+        if edge_match:
+            edges.append(
+                Edge(_unquote_label(edge_match.group(1)), _unquote_label(edge_match.group(2)))
+            )
+            continue
+        raise ValueError(f"unsupported Mermaid line: {line!r}")
+    return diagram(nodes, edges)
+
+
+def to_dot(value: Diagram) -> str:
+    """Serialize to a small Graphviz DOT digraph subset."""
+
+    _validate_dag(value)
+    lines = ["digraph G {"]
+    for node in value.nodes:
+        lines.append(f'  "{_quote_label(node.id)}" [label="{_quote_label(node.label)}"];')
+    for edge in value.edges:
+        lines.append(f'  "{_quote_label(edge.source)}" -> "{_quote_label(edge.target)}";')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+_DOT_TOKEN = r'"((?:\\.|[^"])*)"'
+_DOT_NODE_RE = re.compile(
+    rf"^\s*{_DOT_TOKEN}\s+\[label={_DOT_TOKEN}\];\s*$"
+)
+_DOT_EDGE_RE = re.compile(
+    rf"^\s*{_DOT_TOKEN}\s*->\s*{_DOT_TOKEN};\s*$"
+)
+
+
+def from_dot(text: str) -> Diagram:
+    """Parse the narrow DOT subset emitted by to_dot()."""
+
+    if not isinstance(text, str):
+        raise TypeError("DOT input must be a string")
+    nodes: list[Node] = []
+    edges: list[Edge] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped == "digraph G {" or stripped == "}":
+            continue
+        node_match = _DOT_NODE_RE.fullmatch(line)
+        if node_match:
+            nodes.append(
+                Node(_unquote_label(node_match.group(1)), _unquote_label(node_match.group(2)))
+            )
+            continue
+        edge_match = _DOT_EDGE_RE.fullmatch(line)
+        if edge_match:
+            edges.append(Edge(edge_match.group(1), edge_match.group(2)))
+            continue
+        raise ValueError(f"unsupported DOT line: {line!r}")
+    return diagram(nodes, edges)
+
+
+def to_markdown_outline(value: Diagram) -> str:
+    """Render a DAG as a normalized ATX-heading outline by topological layer."""
+
+    layers = _topological_layers(value)
+    labels = {node.id: node.label for node in value.nodes}
+    lines: list[str] = []
+    for depth, layer in enumerate(layers, start=1):
+        prefix = "#" * min(depth, 6)
+        for node_id in layer:
+            lines.append(f"{prefix} {labels[node_id]}")
+    return "\n".join(lines)
+
+
+_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+
+
+def from_markdown_outline(text: str) -> Diagram:
+    """Parse an ATX-heading tree subset into a Diagram."""
+
+    if not isinstance(text, str):
+        raise TypeError("Markdown outline input must be a string")
+    nodes: list[Node] = []
+    edges: list[Edge] = []
+    stack: list[tuple[int, str]] = []
+    counter = 0
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        match = _HEADING_RE.fullmatch(line)
+        if not match:
+            raise ValueError(f"unsupported Markdown outline line: {line!r}")
+        level = len(match.group(1))
+        node_id = f"n{counter}"
+        counter += 1
+        nodes.append(Node(node_id, match.group(2)))
+        while stack and stack[-1][0] >= level:
+            stack.pop()
+        if stack:
+            edges.append(Edge(stack[-1][1], node_id))
+        stack.append((level, node_id))
+    return diagram(nodes, edges)
+
+
+def inventory(value: Diagram) -> dict[str, Any]:
+    """Return deterministic structural statistics without mutating the Diagram."""
+
+    _validate_dag(value)
+    indegree = {node.id: 0 for node in value.nodes}
+    outdegree = {node.id: 0 for node in value.nodes}
+    for edge in value.edges:
+        indegree[edge.target] += 1
+        outdegree[edge.source] += 1
+    layers = _topological_layers(value)
+    return {
+        "nodes": len(value.nodes),
+        "edges": len(value.edges),
+        "roots": [node.id for node in value.nodes if indegree[node.id] == 0],
+        "leaves": [node.id for node in value.nodes if outdegree[node.id] == 0],
+        "layers": layers,
+        "max_depth": max((index + 1 for index, layer in enumerate(layers) if layer), default=0),
+        "is_dag": True,
+    }
+
+
+def _charset(name: str) -> dict[str, str]:
+    if name == "unicode":
+        return {"down": "↓", "tee": "├", "last": "└", "h": "─", "arrow": "→", "pipe": "│"}
+    if name == "ascii":
+        return {"down": "v", "tee": "+", "last": "\\", "h": "-", "arrow": ">", "pipe": "|"}
+    raise ValueError("charset must be 'unicode' or 'ascii'")
+
+
+def render_diagram(value: Diagram, *, charset: str = "unicode") -> str:
+    """Render any DAG as an exact adjacency-oriented text representation.
+
+    Specialized convenience renderers such as flow() and branch() may choose a
+    prettier topology-specific layout. This generic renderer prioritizes edge
+    correctness over pretending to be a full graph-layout engine.
+    """
+
+    chars = _charset(charset)
+    _validate_dag(value)
+    labels = {node.id: node.label for node in value.nodes}
+    outgoing = {node.id: [] for node in value.nodes}
+    for edge in value.edges:
+        outgoing[edge.source].append(edge.target)
+
+    lines: list[str] = []
+    for node in value.nodes:
+        lines.append(labels[node.id])
+        targets = outgoing[node.id]
+        for index, target in enumerate(targets):
+            prefix = chars["last"] if index == len(targets) - 1 else chars["tee"]
+            lines.append(f"{prefix}{chars['h']}{chars['arrow']} {labels[target]}")
+    return "\n".join(lines)
+
+
+def flow(items: Iterable[str], *, charset: str = "unicode") -> str:
+    """Render a deterministic vertical linear flow."""
+
+    labels = [str(item) for item in items]
+    if not labels:
+        return ""
+    if any(not label or "\n" in label or "\r" in label for label in labels):
+        raise ValueError("flow labels must be non-empty single-line strings")
+    chars = _charset(charset)
+    nodes = [Node(str(index), label) for index, label in enumerate(labels)]
+    edges = [Edge(str(index), str(index + 1)) for index in range(len(nodes) - 1)]
+    _validate_dag(Diagram(tuple(nodes), tuple(edges)))
+    return f"\n {chars['down']}\n".join(labels)
+
+
+def branch(
+    root: str,
+    branches: Iterable[str],
+    target: str | None = None,
+    *,
+    charset: str = "unicode",
+) -> str:
+    """Render a one-to-many, optionally many-to-one, topology."""
+
+    branch_labels = [str(label) for label in branches]
+    labels = [root, *branch_labels] + ([target] if target is not None else [])
+    if any(not isinstance(label, str) or not label or "\n" in label or "\r" in label for label in labels):
+        raise ValueError("branch labels must be non-empty single-line strings")
+    if not branch_labels:
+        return root if target is None else flow([root, target], charset=charset)
+
+    nodes = [Node("root", root)]
+    nodes.extend(Node(f"branch_{index}", label) for index, label in enumerate(branch_labels))
+    edges = [Edge("root", f"branch_{index}") for index in range(len(branch_labels))]
+    if target is not None:
+        nodes.append(Node("target", target))
+        edges.extend(Edge(f"branch_{index}", "target") for index in range(len(branch_labels)))
+    _validate_dag(Diagram(tuple(nodes), tuple(edges)))
+
+    chars = _charset(charset)
+    gap = 4
+    branch_line = (" " * gap).join(branch_labels)
+    centers: list[int] = []
+    cursor = 0
+    for label in branch_labels:
+        centers.append(cursor + len(label) // 2)
+        cursor += len(label) + gap
+    total_width = len(branch_line)
+    root_start = max(0, (total_width - len(root)) // 2)
+    root_line = " " * root_start + root
+
+    connector = [" "] * max(total_width, root_start + len(root))
+    root_center = root_start + len(root) // 2
+    left, right = centers[0], centers[-1]
+    if left == right:
+        # Single-branch case: keep a straight vertical connector.
+        connector[left] = chars["pipe"]
+    else:
+        # Multi-branch case: span the first/last branch centers and split at root.
+        for pos in range(left, right + 1):
+            connector[pos] = chars["h"]
+        connector[root_center] = "┼" if charset == "unicode" else "+"
+        connector[left] = "┌" if charset == "unicode" else "+"
+        connector[right] = "┐" if charset == "unicode" else "+"
+    arrows = [" "] * len(connector)
+    for center in centers:
+        arrows[center] = chars["down"]
+
+    lines = [root_line, " " * root_center + chars["pipe"], "".join(connector).rstrip(), "".join(arrows).rstrip(), branch_line]
+    if target is not None:
+        join = [" "] * len(connector)
+        if left == right:
+            # Single-branch convergence is a straight vertical path.
+            join[left] = chars["pipe"]
+        else:
+            # Multi-branch convergence mirrors the fan-out above.
+
+            for pos in range(left, right + 1):
+                join[pos] = chars["h"]
+            join[left] = "└" if charset == "unicode" else "+"
+            join[right] = "┘" if charset == "unicode" else "+"
+            join[root_center] = "┴" if charset == "unicode" else "+"
+        target_start = max(0, (total_width - len(target)) // 2)
+        lines.extend(["".join(join).rstrip(), " " * root_center + chars["down"], " " * target_start + target])
+    return "\n".join(lines)
+
+
+def _tree_lines(
+    value: Mapping[str, Any],
+    *,
+    prefix: str,
+    charset: str,
+) -> list[str]:
+    """Render mapping-shaped descendants iteratively to avoid recursion limits."""
+
+    chars = _charset(charset)
+    lines: list[str] = []
+    stack: list[tuple[list[tuple[str, Any]], int, str]] = [
+        (list(value.items()), 0, prefix)
+    ]
+
+    while stack:
+        entries, index, current_prefix = stack.pop()
+        if index >= len(entries):
+            continue
+
+        label, children = entries[index]
+        last = index == len(entries) - 1
+        elbow = chars["last"] if last else chars["tee"]
+        lines.append(f"{current_prefix}{elbow}{chars['h']}{chars['arrow']} {label}")
+
+        # Resume siblings after this node's descendants.
+        stack.append((entries, index + 1, current_prefix))
+
+        if children:
+            if not isinstance(children, Mapping):
+                raise TypeError("tree children must be mappings")
+            child_prefix = current_prefix + (
+                "   " if last else f"{chars['pipe']}  "
+            )
+            stack.append((list(children.items()), 0, child_prefix))
+
+    return lines
+
+def tree(root: str, children: Mapping[str, Any], *, charset: str = "unicode") -> str:
+    """Render a deterministic nested tree from mapping-shaped children."""
+
+    if not root or "\n" in root or "\r" in root:
+        raise ValueError("tree root must be a non-empty single-line string")
+    if not isinstance(children, Mapping):
+        raise TypeError("tree children must be a mapping")
+    return "\n".join([root, *_tree_lines(children, prefix="", charset=charset)])
+
+
+_ASCII_TEMPLATES = {
+    "icon_ironmate": "   _______\n  /       \\\n | () | () |\n |   ___   |\n  \\_______/\n  [ IRONMATE ]\n",
+    "ironmate": "  _____                                _\n |_   _|  _ __    ___    _ __   _ __  | |__    __ _   ___   ___\n   | |   | '__|  / _ \\  | '_ \\ | '_ \\ | '_ \\  / _` | / __| / __|\n   | |   | |    | (_) | | | | || | | || | | || (_| || (__ | (__\n   |_|   |_|     \\___/  |_| |_||_| |_||_| |_| \\__,_| \\___| \\___|\n  IRONMATE - Your J.A.R.V.I.S-inspired assistant\n",
+    "welcome": " __        __   _\n \\ \\      / /__| | ___ ___  _ __ ___   ___\n  \\ \\ /\\ / / _ \\ |/ __/ _ \\| '_ ` _ \\ / _ \\\n   \\ V  V /  __/ | (_| (_) | | | | | |  __/\n    \\_/\\_/ \\___|_|\\___\\___/|_| |_| |_|\\___|\n  to IRONMATE!\n",
+    "cat": " /\\_/\\\n( o.o )\n > ^ <\n",
+    "heart": " **   **\n***** *****\n *********\n  *******\n   *****\n    ***\n     *\n",
+    "tree": "    *\n   ***\n  *****\n *******\n    |\n",
+}
+
+_DEFAULT_ASCII_PROMPT = "Generate compact ASCII art that represents the user's request."
+_DEFAULT_MAX_WIDTH = 60
+_FENCE_LINE_RE = re.compile(r"^\s*(?:`{3,}|~{3,})(?:[A-Za-z0-9_.+-]+)?\s*$")
+_PREAMBLE_LINE_RE = re.compile(r"^\s*(?:here(?:\'s| is) your ascii art|ascii art)\s*:\s*$", re.IGNORECASE)
+_ROLE_LINE_RE = re.compile(r"^\s*(?:\[(?:system|user|assistant)\]|(?:system|user|assistant))\s*:?\s*$", re.IGNORECASE)
+
+
+class _SupportsGenerateLight(Protocol):
+    def generate_light(self, prompt: str) -> Any:
+        ...
+
+
+def _validate_token(token: str) -> str:
+    if not isinstance(token, str):
+        raise TypeError("char must be a string token")
+    if not token:
+        raise ValueError("char must not be empty")
+    if "\n" in token or "\r" in token:
+        raise ValueError("char must be a single-line token")
+    return token
+
+
+def _generated_text(
+    generator: Callable[[str], Any] | _SupportsGenerateLight,
+    prompt: str,
+) -> str:
+    method = getattr(generator, "generate_light", None)
+    if callable(method):
+        result = method(prompt)
+    elif callable(generator):
+        result = generator(prompt)
+    else:
+        raise TypeError("generator must be callable or provide generate_light(prompt)")
+
+    if isinstance(result, str):
+        return result
+    text = getattr(result, "text", None)
+    if isinstance(text, str):
+        return text
+    raise TypeError("generator result must be a string or provide a string .text attribute")
+
+
+def _sanitize_ascii_output(text: str) -> str:
+    """Remove common chat/Markdown wrappers from generated ASCII text."""
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").splitlines()
+    filtered: list[str] = []
+    for line in lines:
+        stripped = line.rstrip()
+        if _ROLE_LINE_RE.fullmatch(stripped):
+            continue
+        if _FENCE_LINE_RE.fullmatch(stripped):
+            continue
+        if _PREAMBLE_LINE_RE.fullmatch(stripped):
+            continue
+        filtered.append(stripped)
+
+    while filtered and not filtered[0].strip():
+        filtered.pop(0)
+    while filtered and not filtered[-1].strip():
+        filtered.pop()
+    return "\n".join(filtered)
+
+
+def generate_square(size: int, char: str = "*") -> str:
+    """Generate a square by repeating a non-empty single-line token.
+
+    size counts token repetitions, not terminal display cells. Unicode and
+    multi-code-point tokens are preserved as-is.
+    """
+    token = _validate_token(char)
+    if size <= 0:
+        return ""
+    row = token * size
+    return "\n".join(row for _ in range(size))
+
+
+def generate_triangle(height: int, char: str = "*") -> str:
+    """Generate a left-aligned triangle using token repetition counts."""
+    token = _validate_token(char)
+    if height <= 0:
+        return ""
+    return "\n".join(token * i for i in range(1, height + 1))
+
+
+def generate_diamond(half_height: int, char: str = "*") -> str:
+    """Generate a diamond using token repetition counts.
+
+    Padding is ASCII-space based; terminal-cell-perfect alignment for wide
+    Unicode tokens is intentionally outside this stdlib-only helper contract.
+    """
+    token = _validate_token(char)
+    if half_height <= 0:
+        return ""
+    width = 2 * half_height - 1
+    upper = [
+        " " * ((width - (2 * i - 1)) // 2) + token * (2 * i - 1)
+        for i in range(1, half_height + 1)
+    ]
+    lower = [
+        " " * ((width - (2 * i - 1)) // 2) + token * (2 * i - 1)
+        for i in range(half_height - 1, 0, -1)
+    ]
+    return "\n".join(upper + lower)
+
+
+def get_template(name: str) -> str:
+    """Return a built-in ASCII art template by name."""
+    return _ASCII_TEMPLATES.get(name.strip().lower(), "")
+
+
+def list_templates() -> list[str]:
+    """Return the sorted built-in ASCII template names."""
+    return sorted(_ASCII_TEMPLATES)
+
+
+def render_prompt_ascii(
+    prompt: str,
+    generator: Callable[[str], Any] | _SupportsGenerateLight,
+) -> str:
+    """Generate ASCII art using either a callable or generate_light object.
+
+    A callable may return a string directly or an object with a string text
+    attribute. This keeps the module independent from any specific LLM SDK.
+    """
+    base_prompt = _DEFAULT_ASCII_PROMPT
+    max_width = _DEFAULT_MAX_WIDTH
+
+    user_prompt = prompt.strip()
+    final_prompt = (
+        f"{base_prompt}\n\n"
+        f"USER_REQUEST:\n{user_prompt}\n\n"
+        f"CONSTRAINTS:\n"
+        f"- Keep width under {max_width} characters.\n"
+        f"- Return ASCII art only.\n"
+        f"- No explanations.\n"
+    )
+
+    return _sanitize_ascii_output(_generated_text(generator, final_prompt))
+)
 _MERMAID_EDGE_RE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*-->\s*([A-Za-z0-9_.-]+)\s*$")
 
 
