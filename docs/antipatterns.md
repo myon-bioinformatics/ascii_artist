@@ -30,6 +30,9 @@ When an anti-pattern is observed in real development or CI, add or update an ent
 | `RENDERER_AS_SOURCE_OF_TRUTH` | Parsed/rendered text is treated as the canonical graph model | Whitespace/layout normalization destroys structural information | Keep Node/Edge/Diagram as source of truth; rendering is an output transform |
 | `UNDECLARED_ROUNDTRIP_LOSS` | Text renderings are assumed reversible | Layout output may discard IDs or normalize spacing | Mark transformations as lossless, normalized, or lossy and test accordingly |
 | `CYCLE_AS_DAG` | A cyclic graph is silently accepted by DAG helpers | Topological layout/validation becomes undefined | Reject cycles explicitly until cyclic layout has its own contract |
+| `FULL_FORMAT_CLAIM_FROM_SUBSET` | A narrow Mermaid/DOT/Markdown adapter is described as full parser compatibility | Unsupported syntax becomes an accidental contract | Name and document the accepted subset and reject unknown syntax explicitly |
+| `LABEL_LOSS_HIDDEN_BY_EDGE_LIST` | Edge-only conversions are called lossless even though labels disappear | Round-trip equality becomes misleading | Require/provide a label map or classify the transform as normalized/lossy |
+| `PAIRWISE_FORMAT_CONVERTER` | Mermaid→DOT, DOT→JSON, JSON→Markdown etc. each get direct code paths | Conversion logic grows quadratically and drifts | Parse to Diagram IR, then serialize from Diagram IR |
 
 ## Observed incident: escaped Markdown fences
 
