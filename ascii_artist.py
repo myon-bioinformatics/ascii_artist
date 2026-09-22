@@ -1,5 +1,5 @@
 # ascii_artist.py
-# __all__: 6
+# __all__: 8
 
 __all__ = [
     "generate_square",
@@ -8,10 +8,56 @@ __all__ = [
     "get_template",
     "list_templates",
     "render_prompt_ascii",
+    "SUPPORTED",
+    "UNSUPPORTED",
 ]
 
 import re
 from typing import Any, Callable, Protocol
+
+SUPPORTED = {
+    "generation": [
+        "square / triangle / diamond text-art generation",
+        "non-empty single-line string tokens, including Unicode",
+        "built-in text-art templates",
+    ],
+    "llm_adapter": [
+        "plain callable generator",
+        "object exposing generate_light(prompt)",
+        "string result or object with string .text attribute",
+    ],
+    "sanitization": [
+        "common system/user/assistant wrapper lines",
+        "Markdown backtick or tilde fences",
+        "common ASCII-art preamble lines",
+        "CRLF/CR line-ending normalization",
+    ],
+    "distribution": [
+        "single-file copying and vendoring",
+        "Python standard-library-only runtime",
+    ],
+}
+
+UNSUPPORTED = {
+    "layout": [
+        "terminal-cell-perfect alignment for wide Unicode or emoji",
+        "font-aware glyph measurement",
+        "automatic monospace capability detection",
+    ],
+    "rendering": [
+        "ANSI color rendering",
+        "terminal capability negotiation",
+        "image/raster rendering or image decoding",
+    ],
+    "parsing": [
+        "full Markdown parsing",
+        "fuzzy removal of arbitrary prose around generated art",
+    ],
+    "integration": [
+        "direct dependency on a specific LLM SDK",
+        "repository-local runtime assets or configuration files",
+    ],
+}
 
 _ASCII_TEMPLATES = {
     "icon_ironmate": "   _______\n  /       \\\n | () | () |\n |   ___   |\n  \\_______/\n  [ IRONMATE ]\n",
