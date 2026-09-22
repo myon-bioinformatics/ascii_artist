@@ -25,6 +25,11 @@ When an anti-pattern is observed in real development or CI, add or update an ent
 | `NON_STDLIB_RUNTIME_DEPENDENCY` | Core behavior imports Pillow, PyYAML, an LLM SDK, etc. unconditionally | The defining stdlib-only property is lost | Core stays stdlib-only; future optional integrations belong outside the core artifact |
 | `DUPLICATE_IMPLEMENTATION` | Vendored/package/application copies evolve independently | Bug fixes and contracts drift across repositories | `ascii_artist.py` is the source of truth; consumers refresh a reviewed snapshot |
 | `HAPPY_PATH_ONLY_TESTS` | Tests cover only one square/triangle/diamond example | Sanitizer and input contracts regress unnoticed | Cover invalid input, zero/negative sizes, Unicode, wrappers, generator variants, and failure results |
+| `PAIRWISE_CONVERTER_EXPLOSION` | Every input/output format gets its own direct converter | A→B, A→C, B→C combinations grow quadratically and drift | Convert through a small shared IR and keep adapters independent |
+| `LAYOUT_EVERYTHING_HELPER` | Linear/tree/branch/DAG rules are forced into one giant layout function | Topology-specific behavior becomes tightly coupled and hard to test | Keep topology-specific helpers behind a shared Diagram IR |
+| `RENDERER_AS_SOURCE_OF_TRUTH` | Parsed/rendered text is treated as the canonical graph model | Whitespace/layout normalization destroys structural information | Keep Node/Edge/Diagram as source of truth; rendering is an output transform |
+| `UNDECLARED_ROUNDTRIP_LOSS` | Text renderings are assumed reversible | Layout output may discard IDs or normalize spacing | Mark transformations as lossless, normalized, or lossy and test accordingly |
+| `CYCLE_AS_DAG` | A cyclic graph is silently accepted by DAG helpers | Topological layout/validation becomes undefined | Reject cycles explicitly until cyclic layout has its own contract |
 
 ## Observed incident: escaped Markdown fences
 
