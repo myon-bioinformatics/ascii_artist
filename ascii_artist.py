@@ -370,7 +370,7 @@ def to_mermaid(value: Diagram, *, direction: str = "TD") -> str:
     return "\n".join(lines)
 
 
-_MERMAID_NODE_RE = re.compile(r'^\s*([A-Za-z0-9_.-]+)\["((?:\\.|[^"])*)"\]\s*
+_MERMAID_NODE_RE = re.compile(r'^\s*([A-Za-z0-9_.-]+)\["((?:\\.|[^"])*)"\]\s*$')
 _MERMAID_EDGE_RE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*-->\s*([A-Za-z0-9_.-]+)\s*$")
 
 
