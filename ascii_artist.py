@@ -362,11 +362,18 @@ def to_mermaid(value: Diagram, *, direction: str = "TD") -> str:
     _validate_dag(value)
     if direction not in {"TD", "TB", "LR", "RL", "BT"}:
         raise ValueError("unsupported Mermaid direction")
+    aliases = {node.id: f"n{index}" for index, node in enumerate(value.nodes)}
     lines = [f"flowchart {direction}"]
     for node in value.nodes:
-        lines.append(f'    {node.id}["{_quote_label(node.label)}"]')
+        # Preserve the original ID inside the emitted label metadata.
+        payload = json.dumps(
+            {"id": node.id, "label": node.label},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        lines.append(f'    {aliases[node.id]}["{_quote_label(payload)}"]')
     for edge in value.edges:
-        lines.append(f"    {edge.source} --> {edge.target}")
+        lines.append(f"    {aliases[edge.source]} --> {aliases[edge.target]}")
     return "\n".join(lines)
 
 
@@ -389,7 +396,14 @@ def from_mermaid(text: str) -> Diagram:
             continue
         node_match = _MERMAID_NODE_RE.fullmatch(line)
         if node_match:
-            nodes.append(Node(node_match.group(1), _unquote_label(node_match.group(2))))
+            payload = json.loads(_unquote_label(node_match.group(2)))
+            if not isinstance(payload, dict):
+                raise ValueError("Mermaid node payload must be an object")
+            node_id = payload.get("id")
+            label = payload.get("label")
+            if not isinstance(node_id, str) or not isinstance(label, str):
+                raise ValueError("Mermaid node payload requires string id and label")
+            nodes.append(Node(node_id, label))
             continue
         edge_match = _MERMAID_EDGE_RE.fullmatch(line)
         if edge_match:
@@ -398,7 +412,13 @@ def from_mermaid(text: str) -> Diagram:
             )
             continue
         raise ValueError(f"unsupported Mermaid line: {line!r}")
-    return diagram(nodes, edges)
+
+    alias_to_id = {f"n{index}": node.id for index, node in enumerate(nodes)}
+    resolved_edges = [
+        Edge(alias_to_id.get(edge.source, edge.source), alias_to_id.get(edge.target, edge.target))
+        for edge in edges
+    ]
+    return diagram(nodes, resolved_edges)
 
 
 def to_dot(value: Diagram) -> str:
@@ -414,7 +434,7 @@ def to_dot(value: Diagram) -> str:
     return "\n".join(lines)
 
 
-_DOT_TOKEN = r'"((?:\\.|[^"])*)"'
+_DOT_TOKEN = r'"((?:\\\\.|[^"\\\\])*)"'
 _DOT_NODE_RE = re.compile(
     rf"^\s*{_DOT_TOKEN}\s+\[label={_DOT_TOKEN}\];\s*$"
 )
