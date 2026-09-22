@@ -62,6 +62,8 @@ d = diagram(["LLM", "MCP", "Python"], [("LLM", "MCP"), ("MCP", "Python")])
 assert from_dict(to_dict(d)) == d
 \`\`\`
 
+`tree()` uses iterative traversal rather than Python recursion, so deeply nested mapping input is not limited by the interpreter recursion depth.
+
 Text rendering is not claimed to be reversible. Rendering may normalize spacing
 and, for generic DAGs, prioritizes exact edge representation over sophisticated
 graph routing.
