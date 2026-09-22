@@ -39,6 +39,16 @@ The `char` argument used by shape generators is a non-empty, single-line **token
 
 Built-in templates include both Ironmate-derived entries and generic examples such as `cat`, `heart`, and `tree`.
 
+## Capability stance
+
+The module exposes `SUPPORTED` and `UNSUPPORTED` dictionaries so the boundary is machine-readable as well as documented.
+
+Currently supported includes deterministic shape generation, Unicode string tokens, built-in templates, SDK-agnostic generator adapters, narrow wrapper sanitization, and single-file stdlib-only vendoring.
+
+Explicitly unsupported includes terminal-cell-perfect alignment for wide glyphs, ANSI/terminal capability handling, image decoding/rendering, full Markdown parsing, fuzzy prose deletion, and hard dependencies on a specific LLM SDK.
+
+This boundary is intentional: when a new capability is added, update the stance and add a contract/regression test in the same change.
+
 ## Failure-mode documentation
 
 Known design traps and real CI failures are recorded in [`docs/antipatterns.md`](docs/antipatterns.md). New recurring failures should get a stable ID and, where practical, a regression test rather than only a prose note.
