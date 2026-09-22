@@ -1,5 +1,5 @@
 # ascii_artist.py
-# __all__: 18
+# __all__: 31
 
 __all__ = [
     "generate_square",
@@ -20,8 +20,22 @@ __all__ = [
     "flow",
     "branch",
     "tree",
+    "to_json",
+    "from_json",
+    "to_edges",
+    "from_edges",
+    "to_adjacency",
+    "from_adjacency",
+    "to_mermaid",
+    "from_mermaid",
+    "to_dot",
+    "from_dot",
+    "to_markdown_outline",
+    "from_markdown_outline",
+    "inventory",
 ]
 
+import json
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping, Protocol
@@ -32,7 +46,10 @@ SUPPORTED = {
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
         "Diagram IR with deterministic flow / branch / tree rendering",
-        "lossless Diagram <-> dict serialization",
+        "lossless Diagram <-> dict / JSON serialization",
+        "edge-list and adjacency adapters",
+        "Mermaid / DOT / Markdown-outline subset conversion",
+        "Diagram inventory and topology statistics",
     ],
     "llm_adapter": [
         "plain callable generator",
@@ -243,6 +260,232 @@ def from_dict(value: Mapping[str, Any]) -> Diagram:
             )
         edges.append(Edge(source, target))
     return diagram(nodes, edges)
+
+
+
+def to_json(value: Diagram, *, indent: int | None = 2) -> str:
+    """Serialize Diagram to canonical JSON. LOSSLESS with from_json()."""
+
+    return json.dumps(to_dict(value), ensure_ascii=False, indent=indent)
+
+
+def from_json(text: str) -> Diagram:
+    """Deserialize canonical Diagram JSON."""
+
+    if not isinstance(text, str):
+        raise TypeError("json input must be a string")
+    return from_dict(json.loads(text))
+
+
+def to_edges(value: Diagram) -> list[tuple[str, str]]:
+    """Return the directed edge list. NORMALIZED: node labels are omitted."""
+
+    _validate_dag(value)
+    return [(edge.source, edge.target) for edge in value.edges]
+
+
+def from_edges(
+    edges: Iterable[tuple[str, str] | Edge],
+    *,
+    labels: Mapping[str, str] | None = None,
+) -> Diagram:
+    """Build Diagram from edge list, deriving nodes in first-seen order."""
+
+    normalized = [_normalize_edge(edge) for edge in edges]
+    seen: dict[str, None] = {}
+    for edge in normalized:
+        seen.setdefault(edge.source, None)
+        seen.setdefault(edge.target, None)
+    labels = labels or {}
+    nodes = [Node(node_id, labels.get(node_id, node_id)) for node_id in seen]
+    return diagram(nodes, normalized)
+
+
+def to_adjacency(value: Diagram) -> dict[str, list[str]]:
+    """Return deterministic adjacency mapping for every node."""
+
+    _validate_dag(value)
+    result = {node.id: [] for node in value.nodes}
+    for edge in value.edges:
+        result[edge.source].append(edge.target)
+    return result
+
+
+def from_adjacency(
+    value: Mapping[str, Iterable[str]],
+    *,
+    labels: Mapping[str, str] | None = None,
+) -> Diagram:
+    """Build Diagram from adjacency mapping."""
+
+    if not isinstance(value, Mapping):
+        raise TypeError("adjacency input must be a mapping")
+    edges: list[Edge] = []
+    seen: dict[str, None] = {}
+    for source, targets in value.items():
+        if not isinstance(source, str):
+            raise TypeError("adjacency keys must be strings")
+        seen.setdefault(source, None)
+        for target in targets:
+            if not isinstance(target, str):
+                raise TypeError("adjacency targets must be strings")
+            seen.setdefault(target, None)
+            edges.append(Edge(source, target))
+    labels = labels or {}
+    nodes = [Node(node_id, labels.get(node_id, node_id)) for node_id in seen]
+    return diagram(nodes, edges)
+
+
+def _quote_label(text: str) -> str:
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def to_mermaid(value: Diagram, *, direction: str = "TD") -> str:
+    """Serialize to a small Mermaid flowchart subset. NORMALIZED round-trip."""
+
+    _validate_dag(value)
+    if direction not in {"TD", "TB", "LR", "RL", "BT"}:
+        raise ValueError("unsupported Mermaid direction")
+    lines = [f"flowchart {direction}"]
+    for node in value.nodes:
+        lines.append(f'    {node.id}["{_quote_label(node.label)}"]')
+    for edge in value.edges:
+        lines.append(f"    {edge.source} --> {edge.target}")
+    return "\n".join(lines)
+
+
+_MERMAID_NODE_RE = re.compile(r'^\s*([A-Za-z0-9_.-]+)\["((?:\\.|[^"])*)"\]\s*$')
+_MERMAID_EDGE_RE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*-->\s*([A-Za-z0-9_.-]+)\s*$")
+
+
+def from_mermaid(text: str) -> Diagram:
+    """Parse the flowchart subset emitted by to_mermaid()."""
+
+    if not isinstance(text, str):
+        raise TypeError("Mermaid input must be a string")
+    nodes: list[Node] = []
+    edges: list[Edge] = []
+    for index, line in enumerate(text.splitlines()):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if index == 0 and stripped.startswith("flowchart "):
+            continue
+        node_match = _MERMAID_NODE_RE.fullmatch(line)
+        if node_match:
+            label = bytes(node_match.group(2), "utf-8").decode("unicode_escape")
+            nodes.append(Node(node_match.group(1), label))
+            continue
+        edge_match = _MERMAID_EDGE_RE.fullmatch(line)
+        if edge_match:
+            edges.append(Edge(edge_match.group(1), edge_match.group(2)))
+            continue
+        raise ValueError(f"unsupported Mermaid line: {line!r}")
+    return diagram(nodes, edges)
+
+
+def to_dot(value: Diagram) -> str:
+    """Serialize to a small Graphviz DOT digraph subset."""
+
+    _validate_dag(value)
+    lines = ["digraph G {"]
+    for node in value.nodes:
+        lines.append(f'  "{_quote_label(node.id)}" [label="{_quote_label(node.label)}"];')
+    for edge in value.edges:
+        lines.append(f'  "{_quote_label(edge.source)}" -> "{_quote_label(edge.target)}";')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+_DOT_NODE_RE = re.compile(r'^\s*"([^"]+)"\s+\[label="([^"]*)"\];\s*$')
+_DOT_EDGE_RE = re.compile(r'^\s*"([^"]+)"\s*->\s*"([^"]+)";\s*$')
+
+
+def from_dot(text: str) -> Diagram:
+    """Parse the narrow DOT subset emitted by to_dot()."""
+
+    if not isinstance(text, str):
+        raise TypeError("DOT input must be a string")
+    nodes: list[Node] = []
+    edges: list[Edge] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped == "digraph G {" or stripped == "}":
+            continue
+        node_match = _DOT_NODE_RE.fullmatch(line)
+        if node_match:
+            nodes.append(Node(node_match.group(1), node_match.group(2)))
+            continue
+        edge_match = _DOT_EDGE_RE.fullmatch(line)
+        if edge_match:
+            edges.append(Edge(edge_match.group(1), edge_match.group(2)))
+            continue
+        raise ValueError(f"unsupported DOT line: {line!r}")
+    return diagram(nodes, edges)
+
+
+def to_markdown_outline(value: Diagram) -> str:
+    """Render a DAG as a normalized ATX-heading outline by topological layer."""
+
+    layers = _topological_layers(value)
+    labels = {node.id: node.label for node in value.nodes}
+    lines: list[str] = []
+    for depth, layer in enumerate(layers, start=1):
+        prefix = "#" * min(depth, 6)
+        for node_id in layer:
+            lines.append(f"{prefix} {labels[node_id]}")
+    return "\n".join(lines)
+
+
+_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+
+
+def from_markdown_outline(text: str) -> Diagram:
+    """Parse an ATX-heading tree subset into a Diagram."""
+
+    if not isinstance(text, str):
+        raise TypeError("Markdown outline input must be a string")
+    nodes: list[Node] = []
+    edges: list[Edge] = []
+    stack: list[tuple[int, str]] = []
+    counter = 0
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        match = _HEADING_RE.fullmatch(line)
+        if not match:
+            raise ValueError(f"unsupported Markdown outline line: {line!r}")
+        level = len(match.group(1))
+        node_id = f"n{counter}"
+        counter += 1
+        nodes.append(Node(node_id, match.group(2)))
+        while stack and stack[-1][0] >= level:
+            stack.pop()
+        if stack:
+            edges.append(Edge(stack[-1][1], node_id))
+        stack.append((level, node_id))
+    return diagram(nodes, edges)
+
+
+def inventory(value: Diagram) -> dict[str, Any]:
+    """Return deterministic structural statistics without mutating the Diagram."""
+
+    _validate_dag(value)
+    indegree = {node.id: 0 for node in value.nodes}
+    outdegree = {node.id: 0 for node in value.nodes}
+    for edge in value.edges:
+        indegree[edge.target] += 1
+        outdegree[edge.source] += 1
+    layers = _topological_layers(value)
+    return {
+        "nodes": len(value.nodes),
+        "edges": len(value.edges),
+        "roots": [node.id for node in value.nodes if indegree[node.id] == 0],
+        "leaves": [node.id for node in value.nodes if outdegree[node.id] == 0],
+        "layers": layers,
+        "max_depth": max((index + 1 for index, layer in enumerate(layers) if layer), default=0),
+        "is_dag": True,
+    }
 
 
 def _charset(name: str) -> dict[str, str]:
