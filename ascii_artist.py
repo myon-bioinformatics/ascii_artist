@@ -691,7 +691,9 @@ def _tree_lines(
         elbow = chars["last"] if last else chars["tee"]
         lines.append(f"{current_prefix}{elbow}{chars['h']}{chars['arrow']} {label}")
 
-        # Resume siblings after this node's descendants.
+        # LIFO invariant: push the sibling-resume frame first, then children.
+        # The child frame below is popped first, so descendants are fully
+        # rendered before this saved frame resumes the next sibling.
         stack.append((entries, index + 1, current_prefix))
 
         if children:
