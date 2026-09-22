@@ -11,7 +11,10 @@ __all__ = [
 import json
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    yaml = None
 
 ASCII_TEMPLATE_DIR = Path(__file__).resolve().parent / "templates_ascii"
 PROMPT_TEMPLATE_DIR = Path(__file__).resolve().parent / "templates_prompt"
