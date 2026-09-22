@@ -64,6 +64,15 @@ class AsciiArtistTests(unittest.TestCase):
 
         self.assertEqual(ascii_artist.render_prompt_ascii("box", generate), "[]")
 
+
+    def test_capability_stance_is_exposed(self):
+        self.assertIn("generation", ascii_artist.SUPPORTED)
+        self.assertIn("layout", ascii_artist.UNSUPPORTED)
+        self.assertIn(
+            "terminal-cell-perfect alignment for wide Unicode or emoji",
+            ascii_artist.UNSUPPORTED["layout"],
+        )
+
     def test_render_rejects_invalid_generator_result(self):
         with self.assertRaises(TypeError):
             ascii_artist.render_prompt_ascii("x", lambda _prompt: 123)
