@@ -11,7 +11,7 @@ import ascii_artist
 
 class _LightGenerator:
     def generate_light(self, prompt: str):
-        return SimpleNamespace(text="assistant\n\`\`\`ascii\n /\\_/\\\n( o.o )\n\`\`\`\n")
+        return SimpleNamespace(text="assistant\n```ascii\n /\\_/\\\n( o.o )\n```\n")
 
 
 class AsciiArtistTests(unittest.TestCase):
@@ -60,7 +60,7 @@ class AsciiArtistTests(unittest.TestCase):
 
     def test_render_accepts_callable_result_with_text_attribute(self):
         def generate(_prompt: str):
-            return SimpleNamespace(text="ASCII art:\n\`\`\`\n[]\n\`\`\`")
+            return SimpleNamespace(text="ASCII art:\n```\n[]\n```")
 
         self.assertEqual(ascii_artist.render_prompt_ascii("box", generate), "[]")
 
