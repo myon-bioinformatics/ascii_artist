@@ -1,5 +1,5 @@
 # ascii_artist.py
-# __all__: 31
+# __all__: 32
 
 __all__ = [
     "generate_square",
@@ -40,7 +40,7 @@ import html
 import json
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable, Mapping, Protocol
+from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
@@ -799,14 +799,14 @@ def to_web_ui_v1_html(
     value: Diagram | str,
     *,
     title: str = "ASCII art",
-    theme: str = "modern",
-    charset: str = "unicode",
+    theme: Literal["modern", "github-like"] = "modern",
+    charset: Literal["unicode", "ascii"] = "unicode",
 ) -> str:
     """Render Diagram/text art inside the stable web-ui HTML contract v1.
 
     Semantic HTML only is emitted; CSS remains consumer-owned. Diagram values
     are rendered with ``render_diagram`` first. Text and title are escaped so
-    ASCII characters such as ``<`` and ``&`` remain text rather than markup.
+    ASCII characters such as ``<`` and ``&`` remain text rather than markup.\n    ``charset`` is passed to ``render_diagram`` and is currently limited to\n    ``unicode`` or ``ascii`` for Diagram input.
     """
     if theme not in {"modern", "github-like"}:
         raise ValueError("theme must be 'modern' or 'github-like'")
