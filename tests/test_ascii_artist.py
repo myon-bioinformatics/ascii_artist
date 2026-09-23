@@ -299,3 +299,18 @@ if __name__ == "__main__":
     def test_to_web_ui_v1_html_rejects_unknown_theme(self):
         with self.assertRaises(ValueError):
             ascii_artist.to_web_ui_v1_html("x", theme="unknown")
+
+    def test_to_web_ui_v1_html_empty_diagram(self):
+        rendered = ascii_artist.to_web_ui_v1_html(ascii_artist.diagram([], []))
+        self.assertIn('<pre class="ui-output"></pre>', rendered)
+
+    def test_to_web_ui_v1_html_preserves_multiline_text_after_escape(self):
+        rendered = ascii_artist.to_web_ui_v1_html("<a>\n&b")
+        self.assertIn('&lt;a&gt;\n&amp;b', rendered)
+
+    def test_to_web_ui_v1_html_rejects_unknown_charset_for_diagram(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.to_web_ui_v1_html(
+                ascii_artist.diagram(["A"], []),
+                charset="cp437",
+            )
