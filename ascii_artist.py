@@ -1,5 +1,5 @@
 # ascii_artist.py
-# __all__: 31
+# __all__: 32
 
 __all__ = [
     "generate_square",
@@ -8,6 +8,7 @@ __all__ = [
     "get_template",
     "list_templates",
     "render_prompt_ascii",
+    "to_web_ui_v1_html",
     "SUPPORTED",
     "UNSUPPORTED",
     "Node",
@@ -35,10 +36,11 @@ __all__ = [
     "inventory",
 ]
 
+import html
 import json
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable, Mapping, Protocol
+from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
@@ -50,6 +52,7 @@ SUPPORTED = {
         "edge-list and adjacency adapters",
         "Mermaid / DOT / Markdown-outline subset conversion",
         "Diagram inventory and topology statistics",
+        "web-ui HTML contract v1 document emission for Diagram or text art",
     ],
     "llm_adapter": [
         "plain callable generator",
@@ -790,6 +793,43 @@ def _sanitize_ascii_output(text: str) -> str:
         filtered.pop()
     return "\n".join(filtered)
 
+
+
+def to_web_ui_v1_html(
+    value: Diagram | str,
+    *,
+    title: str = "ASCII art",
+    theme: Literal["modern", "github-like"] = "modern",
+    charset: Literal["unicode", "ascii"] = "unicode",
+) -> str:
+    """Render Diagram/text art inside the stable web-ui HTML contract v1.
+
+    Semantic HTML only is emitted; CSS remains consumer-owned. Diagram values
+    are rendered with ``render_diagram`` first. Text and title are escaped so
+    ASCII characters such as ``<`` and ``&`` remain text rather than markup.\n    ``charset`` is passed to ``render_diagram`` and is currently limited to\n    ``unicode`` or ``ascii`` for Diagram input.
+    """
+    if theme not in {"modern", "github-like"}:
+        raise ValueError("theme must be 'modern' or 'github-like'")
+    if isinstance(value, Diagram):
+        rendered = render_diagram(value, charset=charset)
+    elif isinstance(value, str):
+        rendered = value
+    else:
+        raise TypeError("value must be Diagram or str")
+    return "\n".join([
+        "<!doctype html>",
+        '<html lang="en">',
+        '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
+        f'<body data-ui-theme="{theme}">',
+        '<main class="ui-page">',
+        f'<h1 class="ui-title">{html.escape(title)}</h1>',
+        '<section class="ui-panel">',
+        f'<pre class="ui-output">{html.escape(rendered)}</pre>',
+        "</section>",
+        "</main>",
+        "</body>",
+        "</html>",
+    ])
 
 def generate_square(size: int, char: str = "*") -> str:
     """Generate a square by repeating a non-empty single-line token.

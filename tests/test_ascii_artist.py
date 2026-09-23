@@ -273,5 +273,46 @@ class AsciiArtistTests(unittest.TestCase):
             ascii_artist.render_prompt_ascii("x", lambda _prompt: 123)
 
 
+
+
+    def test_to_web_ui_v1_html_escapes_text_and_uses_contract(self):
+        rendered = ascii_artist.to_web_ui_v1_html(
+            "<box> & text",
+            title="ASCII <demo>",
+            theme="github-like",
+        )
+        self.assertIn('<body data-ui-theme="github-like">', rendered)
+        self.assertIn('<main class="ui-page">', rendered)
+        self.assertIn('<h1 class="ui-title">ASCII &lt;demo&gt;</h1>', rendered)
+        self.assertIn('<section class="ui-panel">', rendered)
+        self.assertIn('<pre class="ui-output">&lt;box&gt; &amp; text</pre>', rendered)
+
+    def test_to_web_ui_v1_html_accepts_diagram(self):
+        value = ascii_artist.diagram(["A", "B"], [("A", "B")])
+        rendered = ascii_artist.to_web_ui_v1_html(value)
+        self.assertIn("A", rendered)
+        self.assertIn("B", rendered)
+        self.assertIn("ui-output", rendered)
+
+    def test_to_web_ui_v1_html_rejects_unknown_theme(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.to_web_ui_v1_html("x", theme="unknown")
+
+    def test_to_web_ui_v1_html_empty_diagram(self):
+        rendered = ascii_artist.to_web_ui_v1_html(ascii_artist.diagram([], []))
+        self.assertIn('<pre class="ui-output"></pre>', rendered)
+
+    def test_to_web_ui_v1_html_preserves_multiline_text_after_escape(self):
+        rendered = ascii_artist.to_web_ui_v1_html("<a>\n&b")
+        self.assertIn('&lt;a&gt;\n&amp;b', rendered)
+
+    def test_to_web_ui_v1_html_rejects_unknown_charset_for_diagram(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.to_web_ui_v1_html(
+                ascii_artist.diagram(["A"], []),
+                charset="cp437",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

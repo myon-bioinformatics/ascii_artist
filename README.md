@@ -192,3 +192,30 @@ Ironmate uses this repository as the upstream source for its vendored ASCII-art 
 ## Direction
 
 Planned improvements include richer conversion and layout helpers and text-based graphics while keeping the public API small and practical. Sanitization, generator adapters, edge cases, and the single-file contract are covered by the initial test suite.
+
+
+## Web UI contract v1
+
+`to_web_ui_v1_html()` renders either a `Diagram` or plain text art into the
+stable semantic surface defined by [`myon-bioinformatics/web-ui/contract/v1`](https://github.com/myon-bioinformatics/web-ui/tree/4f43617465a92c912efcd441208e1789b3508d32/contract/v1) (pinned reference: `4f436174`).
+
+The emitted document uses:
+
+- `body[data-ui-theme]`
+- `ui-page`
+- `ui-title`
+- `ui-panel`
+- `ui-output`
+
+Text and titles are HTML-escaped, including multi-line art. For `Diagram`
+inputs, `charset` currently accepts `unicode` or `ascii`; future charset
+extensions can be additive without changing the v1 HTML surface.
+
+The default title remains `ASCII art`; callers can pass an empty string or a
+domain-specific title when they want different presentation.
+
+CSS remains consumer-owned, so `ascii_artist.py` keeps its single-file,
+standard-library-only runtime contract.
+
+
+The current CI/runtime syntax baseline is Python 3.10+.
