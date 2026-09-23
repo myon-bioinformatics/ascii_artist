@@ -273,8 +273,6 @@ class AsciiArtistTests(unittest.TestCase):
             ascii_artist.render_prompt_ascii("x", lambda _prompt: 123)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
     def test_to_web_ui_v1_html_escapes_text_and_uses_contract(self):
@@ -314,3 +312,7 @@ if __name__ == "__main__":
                 ascii_artist.diagram(["A"], []),
                 charset="cp437",
             )
+
+
+if __name__ == "__main__":
+    unittest.main()
