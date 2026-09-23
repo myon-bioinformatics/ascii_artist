@@ -275,3 +275,27 @@ class AsciiArtistTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_to_web_ui_v1_html_escapes_text_and_uses_contract(self):
+        rendered = ascii_artist.to_web_ui_v1_html(
+            "<box> & text",
+            title="ASCII <demo>",
+            theme="github-like",
+        )
+        self.assertIn('<body data-ui-theme="github-like">', rendered)
+        self.assertIn('<main class="ui-page">', rendered)
+        self.assertIn('<h1 class="ui-title">ASCII &lt;demo&gt;</h1>', rendered)
+        self.assertIn('<section class="ui-panel">', rendered)
+        self.assertIn('<pre class="ui-output">&lt;box&gt; &amp; text</pre>', rendered)
+
+    def test_to_web_ui_v1_html_accepts_diagram(self):
+        value = ascii_artist.diagram(["A", "B"], [("A", "B")])
+        rendered = ascii_artist.to_web_ui_v1_html(value)
+        self.assertIn("A", rendered)
+        self.assertIn("B", rendered)
+        self.assertIn("ui-output", rendered)
+
+    def test_to_web_ui_v1_html_rejects_unknown_theme(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.to_web_ui_v1_html("x", theme="unknown")
