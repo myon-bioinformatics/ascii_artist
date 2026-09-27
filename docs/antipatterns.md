@@ -34,6 +34,14 @@ When an anti-pattern is observed in real development or CI, add or update an ent
 | `LABEL_LOSS_HIDDEN_BY_EDGE_LIST` | Edge-only conversions are called lossless even though labels disappear | Round-trip equality becomes misleading | Require/provide a label map or classify the transform as normalized/lossy |
 | `PAIRWISE_FORMAT_CONVERTER` | Mermaid→DOT, DOT→JSON, JSON→Markdown etc. each get direct code paths | Conversion logic grows quadratically and drifts | Parse to Diagram IR, then serialize from Diagram IR |
 
+| `HOST_FSTRING_FOREIGN_BRACES` | Python f-string (or another host-language interpolated string) contains embedded JavaScript/CSS/JSON braces as if they were plain text | Foreign-language `{...}` is parsed as host interpolation; generated builders can fail at import/CI collection before any page test runs | Keep embedded foreign code in a plain literal/template with explicit sentinel replacement (or escape every brace deliberately), and compile/import the builder in CI |
+
+## Observed incident: host f-string parsed embedded JavaScript braces
+
+The repository diagnostics Pages builder originally put a complete JavaScript block inside a Python f-string. JavaScript braces were interpreted as Python f-string expressions, so CI failed while importing the builder with a `SyntaxError` before any page/output assertion ran.
+
+The fix is to keep the foreign-language body in a plain triple-quoted string and substitute only narrow sentinels such as `__REPO__` / `__BASE__`. This is easier to review than doubling every JavaScript brace and keeps the host/embedded-language boundary explicit. A compile/import test should cover generated/builder scripts so this class fails immediately.
+
 ## Observed incident: escaped Markdown fences
 
 The first CI failure in PR #1 was caused by the test fixture itself:
