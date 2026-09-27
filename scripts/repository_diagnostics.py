@@ -1,7 +1,7 @@
 """Build canonical repository diagnostics JSON/JSONL/HTML for Pages."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 import importlib.util
 import json
 import os
@@ -78,7 +78,7 @@ def build_record(
         branch=branch,
         timestamp=timestamp,
         subject=subject,
-        generated_at=generated_at or datetime.now(UTC).isoformat(),
+        generated_at=generated_at or datetime.now(timezone.utc).isoformat(),
         working_tree_bytes=_tracked_bytes(),
         tooling={"python": platform.python_version()},
     )
