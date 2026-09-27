@@ -219,3 +219,14 @@ standard-library-only runtime contract.
 
 
 The current CI/runtime syntax baseline is Python 3.10+.
+
+
+## Repository diagnostics
+
+GitHub Pages publishes the shared repository metadata contract as
+`repository-diagnostics.json`, a one-record `repository-diagnostics.jsonl`,
+and `repository-diagnostics.html`. The metadata contract is pinned from
+Ironmate, anonymous public GitHub observations are pinned from
+mcp-toolcall-lab, and the HTML renderer is pinned to web-ui commit
+`adb23d7`. Network failures remain `unverified`; no GitHub token is used
+by the public resolver.
