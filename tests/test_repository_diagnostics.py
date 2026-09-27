@@ -50,6 +50,15 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
         self.assertNotIn("__REPO__", html)
         self.assertNotIn("__BASE__", html)
 
+    def test_page_escapes_template_constants(self):
+        with mock.patch.object(diagnostics, "REPOSITORY", '<repo & "quoted">'), mock.patch.object(
+            diagnostics, "WEB_UI_BASE", 'https://example.test/a?x=1&y="2"'
+        ):
+            html = diagnostics.page_html()
+        self.assertIn('&lt;repo &amp; &quot;quoted&quot;&gt;', html)
+        self.assertIn('https://example.test/a?x=1&amp;y=&quot;2&quot;', html)
+        self.assertNotIn('<repo & "quoted">', html)
+
     def test_build_record_prefers_explicit_diagnostics_sha(self):
         head_sha = "c" * 40
 
