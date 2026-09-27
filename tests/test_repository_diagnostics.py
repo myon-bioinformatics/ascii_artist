@@ -47,6 +47,35 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
         html = diagnostics.page_html()
         self.assertIn(diagnostics.WEB_UI_SHA, html)
         self.assertIn("RepositoryDiagnostics.render(payload.metadata)", html)
+        self.assertNotIn("__REPO__", html)
+        self.assertNotIn("__BASE__", html)
+
+    def test_build_record_prefers_explicit_diagnostics_sha(self):
+        head_sha = "c" * 40
+
+        def fake_git(*args):
+            if args[:3] == ("show", "-s", "--format=%cI"):
+                self.assertEqual(args[3], head_sha)
+                return "2026-09-27T22:00:00+09:00"
+            if args[:3] == ("show", "-s", "--format=%s"):
+                self.assertEqual(args[3], head_sha)
+                return "PR head subject"
+            raise AssertionError(args)
+
+        with mock.patch.object(diagnostics, "_git", side_effect=fake_git), mock.patch.object(
+            diagnostics, "_tracked_bytes", return_value=1
+        ):
+            record = diagnostics.build_record(
+                {
+                    "REPOSITORY_DIAGNOSTICS_SHA": head_sha,
+                    "GITHUB_SHA": "d" * 40,
+                    "GITHUB_HEAD_REF": "feature/example",
+                },
+                generated_at="2026-09-27T13:00:00+00:00",
+            )
+        self.assertEqual(record["head"]["sha"], head_sha)
+        self.assertEqual(record["head"]["branch"], "feature/example")
+        self.assertEqual(record["head"]["subject"], "PR head subject")
 
 
 if __name__ == "__main__":
