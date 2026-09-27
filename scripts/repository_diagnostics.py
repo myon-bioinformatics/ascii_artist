@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from html import escape
 import importlib.util
 import json
 import os
@@ -157,7 +158,9 @@ def page_html() -> str:
 })();
 </script></body></html>
 """
-    return html.replace("__REPO__", REPOSITORY).replace("__BASE__", WEB_UI_BASE)
+    return html.replace("__REPO__", escape(REPOSITORY, quote=True)).replace(
+        "__BASE__", escape(WEB_UI_BASE, quote=True)
+    )
 
 
 def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:
