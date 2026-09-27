@@ -63,7 +63,7 @@ def build_record(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     env = os.environ if env is None else env
-    sha = (env.get("GITHUB_SHA") or "").strip() or _git("rev-parse", "HEAD")
+    sha = (env.get("REPOSITORY_DIAGNOSTICS_SHA") or env.get("GITHUB_SHA") or "").strip() or _git("rev-parse", "HEAD")
     branch = (
         (env.get("GITHUB_HEAD_REF") or "").strip()
         or (env.get("GITHUB_REF_NAME") or "").strip()
