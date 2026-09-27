@@ -109,27 +109,27 @@ def build_payload(record: dict[str, Any], *, probe: bool = True) -> dict[str, An
 
 
 def page_html() -> str:
-    return f"""<!doctype html>
+    html = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ascii_artist repository diagnostics</title>
-<link rel="stylesheet" href="{WEB_UI_BASE}/css/tokens.css">
-<link rel="stylesheet" href="{WEB_UI_BASE}/css/base.css">
-<link rel="stylesheet" href="{WEB_UI_BASE}/css/components.css">
-<link rel="stylesheet" href="{WEB_UI_BASE}/css/themes/modern.css">
-<link rel="stylesheet" href="{WEB_UI_BASE}/css/repository-diagnostics.css">
+<title>__REPO__ repository diagnostics</title>
+<link rel="stylesheet" href="__BASE__/css/tokens.css">
+<link rel="stylesheet" href="__BASE__/css/base.css">
+<link rel="stylesheet" href="__BASE__/css/components.css">
+<link rel="stylesheet" href="__BASE__/css/themes/modern.css">
+<link rel="stylesheet" href="__BASE__/css/repository-diagnostics.css">
 </head>
 <body data-ui-theme="modern"><main class="ui-page">
-<h1 class="ui-title">ascii_artist repository diagnostics</h1>
+<h1 class="ui-title">__REPO__ repository diagnostics</h1>
 <p class="ui-muted">Canonical metadata plus anonymous public GitHub observations.</p>
 <div id="metadata"></div>
 <section class="ui-panel"><h2>Public URL observations</h2>
 <p id="summary" class="ui-muted">Loading…</p><div id="observations" class="ui-grid"></div></section>
 <p><a href="./repository-diagnostics.json">JSON</a> · <a href="./repository-diagnostics.jsonl">JSONL</a></p>
 </main>
-<script src="{WEB_UI_BASE}/js/repository-diagnostics.js"></script>
+<script src="__BASE__/js/repository-diagnostics.js"></script>
 <script>
 (async function() {
   const root=document.getElementById("metadata"), summary=document.getElementById("summary"),
@@ -157,6 +157,7 @@ def page_html() -> str:
 })();
 </script></body></html>
 """
+    return html.replace("__REPO__", REPOSITORY).replace("__BASE__", WEB_UI_BASE)
 
 
 def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:
