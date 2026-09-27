@@ -9,6 +9,7 @@ on:
       - "vendor/repository_metadata_contract.provenance.json"
       - "vendor/github_public_resolver.py"
       - "vendor/github_public_resolver.provenance.json"
+      - "tests/test_repository_diagnostics.py"
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
@@ -23,11 +24,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -35,12 +34,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Run diagnostics tests
         run: python -m unittest tests.test_repository_diagnostics -v
       - name: Build Pages tree
+        env:
+          REPOSITORY_DIAGNOSTICS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           mkdir -p _site
           python scripts/repository_diagnostics.py _site
@@ -58,6 +61,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
