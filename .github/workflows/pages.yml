@@ -52,7 +52,7 @@ jobs:
         with:
           name: repository-diagnostics-pages
           path: _site
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: github.ref == 'refs/heads/main'
         with:
           path: _site
