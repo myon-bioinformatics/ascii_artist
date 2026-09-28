@@ -33,10 +33,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Run diagnostics tests
@@ -48,7 +48,7 @@ jobs:
           mkdir -p _site
           python scripts/repository_diagnostics.py _site
           cp _site/repository-diagnostics.html _site/index.html
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: repository-diagnostics-pages
           path: _site
@@ -69,4 +69,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
