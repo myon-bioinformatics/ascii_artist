@@ -1,5 +1,6 @@
 # ascii_artist
 
+**Python compatibility:** CI-tested on Python 3.10–3.14.
 Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows.
 
 ## Purpose
