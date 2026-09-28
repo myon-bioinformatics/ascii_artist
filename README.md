@@ -218,7 +218,7 @@ CSS remains consumer-owned, so `ascii_artist.py` keeps its single-file,
 standard-library-only runtime contract.
 
 
-The current CI/runtime syntax baseline is Python 3.10+.
+The CI-tested Python versions are **3.12** (baseline) and **3.14** (forward-compatibility check). Python versions outside this tested set are not part of the default CI guarantee.
 
 
 ## Repository diagnostics
