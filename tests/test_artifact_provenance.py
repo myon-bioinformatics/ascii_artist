@@ -1,48 +1,56 @@
-import ast
-from datetime import datetime
+import hashlib
+import importlib.util
+import json
 from pathlib import Path
-import re
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "ascii_artist.py"
-HEADER_RE = re.compile(
-    r"^# metadata: __all__=(?P<count>[0-9]+) \| "
-    r"base_sha=(?P<sha>(?:[0-9a-f]{40}|[0-9a-f]{64})) \| "
-    r"updated_at=(?P<updated_at>\S+)$"
-)
+VALIDATOR = ROOT / "vendor" / "python_artifact_provenance.py"
+PROVENANCE = ROOT / "vendor" / "python_artifact_provenance.provenance.json"
+EXPECTED_SOURCE_COMMIT = "b9c079bb55c1349abb47f67a09bbf0dbcf54bca9"
+EXPECTED_SOURCE_BLOB = "89b1954f623b8ad596974d59fa4f3728a90341a3"
+EXPECTED_SOURCE_SHA256 = "b67a594c5de260697f77f3512332e091a3d0eec9cb5a1d61a10d65c9246c2de3"
+EXPECTED_ARTIFACT_BASE_SHA = "7c21bacfac7b60327b77f9b31a87869ef7838a7e"
+
+
+def _load_validator():
+    spec = importlib.util.spec_from_file_location(
+        "vendored_python_artifact_provenance",
+        VALIDATOR,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("unable to load vendored provenance validator")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+VALIDATOR_MODULE = _load_validator()
 
 
 class ArtifactProvenanceTests(unittest.TestCase):
-    def test_header_matches_literal_all(self):
-        source = ARTIFACT.read_text(encoding="utf-8")
-        header = next(
-            (line for line in source.splitlines()[:8] if line.startswith("# metadata:")),
-            None,
+    def test_vendored_validator_matches_recorded_provenance(self):
+        record = json.loads(PROVENANCE.read_text(encoding="utf-8"))
+        data = VALIDATOR.read_bytes()
+
+        self.assertEqual(record["source_repository"], "myon-bioinformatics/Ironmate")
+        self.assertEqual(record["source_path"], "python_artifact_provenance.py")
+        self.assertEqual(record["source_commit"], EXPECTED_SOURCE_COMMIT)
+        self.assertEqual(record["blob_sha"], EXPECTED_SOURCE_BLOB)
+        self.assertEqual(record["sha256"], EXPECTED_SOURCE_SHA256)
+        self.assertEqual(hashlib.sha256(data).hexdigest(), EXPECTED_SOURCE_SHA256)
+
+        git_blob = b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+        self.assertEqual(hashlib.sha1(git_blob).hexdigest(), EXPECTED_SOURCE_BLOB)
+
+    def test_ascii_artist_passes_canonical_validator(self):
+        metadata = VALIDATOR_MODULE.validate_source_header(
+            ARTIFACT.read_text(encoding="utf-8")
         )
-        self.assertIsNotNone(header)
-        match = HEADER_RE.fullmatch(header or "")
-        self.assertIsNotNone(match)
-
-        tree = ast.parse(source)
-        all_values = []
-        for node in tree.body:
-            if isinstance(node, ast.Assign) and any(
-                isinstance(target, ast.Name) and target.id == "__all__"
-                for target in node.targets
-            ):
-                all_values.append(ast.literal_eval(node.value))
-
-        self.assertEqual(len(all_values), 1)
-        self.assertIsInstance(all_values[0], list)
-        self.assertTrue(all(isinstance(item, str) for item in all_values[0]))
-        self.assertEqual(int(match.group("count")), len(all_values[0]))
-
-        updated = datetime.fromisoformat(
-            match.group("updated_at").replace("Z", "+00:00")
-        )
-        self.assertIsNotNone(updated.tzinfo)
+        self.assertEqual(metadata["all_count"], 32)
+        self.assertEqual(metadata["base_sha"], EXPECTED_ARTIFACT_BASE_SHA)
 
 
 if __name__ == "__main__":
