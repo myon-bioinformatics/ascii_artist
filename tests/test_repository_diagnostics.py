@@ -29,6 +29,7 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
         self.assertEqual(git_blob_sha(ROOT / "vendor/github_public_resolver.py"), resolver["blob_sha"])
         self.assertEqual(git_blob_sha(ROOT / "vendor/git_inspector.py"), inspector["blob_sha"])
         self.assertEqual(inspector["source_commit"], "cffa7017c95634bfb6ed6b269d255d56680a894c")
+        self.assertEqual(hashlib.sha256((ROOT / "vendor/git_inspector.py").read_bytes()).hexdigest(), inspector["sha256"])
 
     def test_write_outputs_roundtrips_metadata(self):
         record = diagnostics.CONTRACT.build_repository_record(
