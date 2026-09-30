@@ -54,39 +54,6 @@ jobs:
         run: |
           mkdir -p build/test-results
           python -m pytest -q --junitxml="build/test-results/pytest-${{ matrix.python-version }}.xml"
-      - name: Build compact failure identity
-        if: always()
-        env:
-          PYTHONPATH: build/shared
-          PYTHON_VERSION: ${{ matrix.python-version }}
-        run: |
-          if [ ! -f build/shared/xprobe.py ]; then
-            mkdir -p build/test-results
-            : > "build/test-results/failure-identity-$PYTHON_VERSION.jsonl"
-            exit 0
-          fi
-          python - <<'PY'
-          import os
-          from pathlib import Path
-          import xprobe
-
-          version = os.environ["PYTHON_VERSION"]
-          source = Path(f"build/test-results/pytest-{version}.xml")
-          output = Path(f"build/test-results/failure-identity-{version}.jsonl")
-          if not source.exists():
-              output.write_text("", encoding="utf-8")
-          else:
-              report = xprobe.cases_from_junit(
-                  source.read_text(encoding="utf-8"),
-                  repository="myon-bioinformatics/ascii_artist",
-                  commit_sha=None,
-                  report_id="pytest-" + version.replace(".", "_"),
-              )
-              output.write_text(
-                  xprobe.corpus_to_json(report["cases"], jsonl=True),
-                  encoding="utf-8",
-              )
-          PY
       - name: Preserve raw JUnit
         if: always()
         uses: actions/upload-artifact@v7
@@ -95,11 +62,14 @@ jobs:
           path: build/test-results/pytest-${{ matrix.python-version }}.xml
           if-no-files-found: warn
           retention-days: 14
-      - name: Preserve compact failure identity
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: failure-identity-py${{ matrix.python-version }}
-          path: build/test-results/failure-identity-${{ matrix.python-version }}.jsonl
-          if-no-files-found: warn
-          retention-days: 14
+
+  failure-identity:
+    needs: [changes, test]
+    if: always() && needs.changes.outputs.non_docs_changed == 'true'
+    permissions:
+      contents: read
+      actions: read
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@47cca15cd2c70b274c92f4ea036ececa62b796f8
+    with:
+      artifact-pattern: "junit-py*"
+      output-artifact: "failure-identity"
