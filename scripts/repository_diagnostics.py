@@ -1,7 +1,6 @@
 """Build canonical repository diagnostics JSON/JSONL/HTML for Pages."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from html import escape
 import importlib.util
 import json
@@ -22,9 +21,10 @@ JSONL_NAME = "repository-diagnostics.jsonl"
 HTML_NAME = "repository-diagnostics.html"
 
 
-def _load_vendor(name: str) -> ModuleType:
+def _load_vendor(name: str, *, canonical_name: bool = False) -> ModuleType:
     path = ROOT / "vendor" / f"{name}.py"
-    spec = importlib.util.spec_from_file_location(f"ascii_artist_vendor_{name}", path)
+    module_name = name if canonical_name else f"ascii_artist_vendor_{name}"
+    spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load vendored module: {path}")
     module = importlib.util.module_from_spec(spec)
@@ -33,17 +33,9 @@ def _load_vendor(name: str) -> ModuleType:
     return module
 
 
-CONTRACT = _load_vendor("repository_metadata_contract")
+CONTRACT = _load_vendor("repository_metadata_contract", canonical_name=True)
+GENERATOR = _load_vendor("repository_metadata_generator")
 RESOLVER = _load_vendor("github_public_resolver")
-
-
-def _git(*args: str) -> str:
-    result = subprocess.run(
-        ["git", *args], cwd=ROOT, text=True, capture_output=True, timeout=10, check=False
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "git command failed")
-    return result.stdout.strip()
 
 
 def _tracked_bytes() -> int:
@@ -64,25 +56,17 @@ def build_record(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     env = os.environ if env is None else env
-    sha = (env.get("REPOSITORY_DIAGNOSTICS_SHA") or env.get("GITHUB_SHA") or "").strip() or _git("rev-parse", "HEAD")
-    branch = (
-        (env.get("GITHUB_HEAD_REF") or "").strip()
-        or (env.get("GITHUB_REF_NAME") or "").strip()
-        or _git("branch", "--show-current")
-        or "detached"
-    )
-    timestamp = _git("show", "-s", "--format=%cI", sha)
-    subject = _git("show", "-s", "--format=%s", sha)
-    return CONTRACT.build_repository_record(
-        full_name=REPOSITORY,
-        sha=sha,
-        branch=branch,
-        timestamp=timestamp,
-        subject=subject,
-        generated_at=generated_at or datetime.now(timezone.utc).isoformat(),
+    record = GENERATOR.record_from_checkout(
+        ROOT,
+        REPOSITORY,
+        env=env,
         working_tree_bytes=_tracked_bytes(),
         tooling={"python": platform.python_version()},
     )
+    if generated_at is not None:
+        record["generated_at"] = generated_at
+        CONTRACT.validate_repository_record(record)
+    return record
 
 
 def build_payload(record: dict[str, Any], *, probe: bool = True) -> dict[str, Any]:
