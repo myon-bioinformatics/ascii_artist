@@ -264,3 +264,23 @@ and compact evidence are not added to Pages. Docs-only runs skip collection.
 
 The collector requires the exact five matrix report paths. Keep this set aligned
 with the Python matrix; a missing leg cannot be replaced by an extra XML report.
+
+## Shared screenshot evidence
+
+The Pages build now renders actual `branch()` and `get_template()` output through
+`to_web_ui_v1_html()` at `ascii-output.html`, preserving escaping and whitespace.
+The Chromium desktop lane asserts exact preformatted output, viewport bounds,
+and canonical repository/commit/time in the existing diagnostics page before
+capturing `ascii-output.png` and `repository-diagnostics.png`. Shared CSS/JS are
+served from a separately pinned web-ui checkout, so capture does not depend on a CDN.
+
+The multi-image receipt records stage, checkout SHA, canonical timestamps, hashes,
+browser/version, viewport and CI run/attempt. browser-test-kit is pinned to
+`3a054c777a98300ee272e4458990b849c32a7ef0`; its
+`check_capture_evidence.py` requires both images and verifies PNG structure,
+bytes/hashes, canonical identity and current run. Application assertions stay here;
+no dependency is added to the stdlib single-file runtime. Failure/partial receipts
+do not count as success. Available screenshots, receipts, canonical JSON and trace
+upload even after failure (14 days), with an artifact link in the job summary.
+Firefox/WebKit/mobile and pixel regression are unmeasured; no intentional capture skips.
+See the [shared guide](https://github.com/myon-bioinformatics/browser-test-kit/blob/3a054c777a98300ee272e4458990b849c32a7ef0/docs/screenshot-evidence.md).

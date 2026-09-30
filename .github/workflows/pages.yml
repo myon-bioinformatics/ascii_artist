@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "scripts/repository_diagnostics.py"
+      - "scripts/capture_pages.py"
+      - "ascii_artist.py"
+      - "tests/test_capture_pages.py"
       - "vendor/repository_metadata_contract.py"
       - "vendor/repository_metadata_contract.provenance.json"
       - "vendor/repository_metadata_generator.py"
@@ -16,6 +19,9 @@ on:
   pull_request:
     paths:
       - "scripts/repository_diagnostics.py"
+      - "scripts/capture_pages.py"
+      - "ascii_artist.py"
+      - "tests/test_capture_pages.py"
       - "vendor/repository_metadata_contract.py"
       - "vendor/repository_metadata_contract.provenance.json"
       - "vendor/repository_metadata_generator.py"
@@ -41,9 +47,29 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check out pinned browser-test-kit validators
+        uses: actions/checkout@v7
+        with:
+          repository: myon-bioinformatics/browser-test-kit
+          ref: 3a054c777a98300ee272e4458990b849c32a7ef0
+          path: .browser-test-kit
+          persist-credentials: false
+      - name: Check out pinned shared web-ui assets
+        uses: actions/checkout@v7
+        with:
+          repository: myon-bioinformatics/web-ui
+          ref: adb23d7ba6ea94672b76457573f6655a081ee054
+          path: .web-ui
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Install browser test dependencies
+        run: |
+          python -m pip install playwright==1.58.0 pytest
+          python -m playwright install --with-deps chromium
+      - name: Test screenshot scenarios
+        run: python -m pytest -q tests/test_capture_pages.py
       - name: Run diagnostics tests
         run: python -m unittest tests.test_repository_diagnostics -v
       - name: Build Pages tree
@@ -51,10 +77,41 @@ jobs:
           mkdir -p _site
           python scripts/repository_diagnostics.py _site
           cp _site/repository-diagnostics.html _site/index.html
-      - uses: actions/upload-artifact@v7
+      - name: Assert ASCII output and diagnostics, then capture
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python scripts/capture_pages.py --web-ui .web-ui --sha "$EXPECTED_SHA"
+      - name: Validate required images and canonical receipt
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python3 -S .browser-test-kit/scripts/check_capture_evidence.py test-results/pages \
+            --expect chromium --captures ascii-output.png,repository-diagnostics.png \
+            --sha "$EXPECTED_SHA" --canonical test-results/pages/canonical.json \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT"
+      - name: Preserve all available Pages evidence
+        id: evidence
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
           name: repository-diagnostics-pages
-          path: _site
+          path: |
+            _site
+            test-results/pages
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Summarize screenshot evidence
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.evidence.outputs.artifact-url }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "### ASCII and diagnostics screenshot evidence: $JOB_STATUS"
+            echo "Chromium desktop: content/viewport assertions, two captures, shared PNG/hash/canonical/run validation."
+            echo "Firefox/WebKit/mobile unmeasured; no pixel regression baseline."
+            echo "Failed/partial receipts do not count as success. Evidence (14 days): $ARTIFACT_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-pages-artifact@v5
         if: github.ref == 'refs/heads/main'
         with:
