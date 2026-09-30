@@ -186,6 +186,15 @@ This boundary is intentional: when a new capability is added, update the stance 
 
 Known design traps and real CI failures are recorded in [`docs/antipatterns.md`](docs/antipatterns.md). New recurring failures should get a stable ID and, where practical, a regression test rather than only a prose note.
 
+Repository diagnostics consume Ironmate's stdlib metadata contract and generator,
+both pinned to source commit `0aee64da2f8d0119a3ef9b955e5c3818f28aaf92` with
+blob SHA and SHA-256 provenance in `vendor/`. Refresh the pair from the same
+explicit commit and update its provenance together; never refresh from moving
+`main`. Checkout HEAD owns commit identity; GitHub ref variables only provide
+branch context. Tracked-byte measurement, Python tooling, resolver evidence and
+Pages presentation remain local. Run `python -m unittest discover -s tests -v`
+after refresh. Artifact-header provenance is a separate contract.
+
 ## Vendoring
 
 Consumers may copy the single `ascii_artist.py` file into their own `vendor/` directory and pin the source revision without pulling additional runtime dependencies.

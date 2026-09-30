@@ -7,6 +7,8 @@ on:
       - "scripts/repository_diagnostics.py"
       - "vendor/repository_metadata_contract.py"
       - "vendor/repository_metadata_contract.provenance.json"
+      - "vendor/repository_metadata_generator.py"
+      - "vendor/repository_metadata_generator.provenance.json"
       - "vendor/github_public_resolver.py"
       - "vendor/github_public_resolver.provenance.json"
       - "tests/test_repository_diagnostics.py"
@@ -16,6 +18,8 @@ on:
       - "scripts/repository_diagnostics.py"
       - "vendor/repository_metadata_contract.py"
       - "vendor/repository_metadata_contract.provenance.json"
+      - "vendor/repository_metadata_generator.py"
+      - "vendor/repository_metadata_generator.provenance.json"
       - "vendor/github_public_resolver.py"
       - "vendor/github_public_resolver.provenance.json"
       - "tests/test_repository_diagnostics.py"
@@ -36,14 +40,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Run diagnostics tests
         run: python -m unittest tests.test_repository_diagnostics -v
       - name: Build Pages tree
-        env:
-          REPOSITORY_DIAGNOSTICS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           mkdir -p _site
           python scripts/repository_diagnostics.py _site
