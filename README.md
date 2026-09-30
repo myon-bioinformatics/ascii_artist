@@ -242,3 +242,22 @@ Ironmate, anonymous public GitHub observations are pinned from
 mcp-toolcall-lab, and the HTML renderer is pinned to web-ui commit
 `adb23d7`. Network failures remain `unverified`; no GitHub token is used
 by the public resolver.
+
+
+## Test-only JUnit collection
+
+Install test dependencies from `tests/requirements.txt`; runtime distribution
+remains the single stdlib-only `ascii_artist.py`. The importer contract tests
+require a verified `xprobe.py` from commit
+`7e7015b2df69ad446b968f6fa49711b5b1dbdd3f` (Git blob
+`dbc5b7d55005d6288c072a7612584d6170c216f4`). For local pytest, set
+`PYTHONPATH=/path/to/verified/importer-directory`. CI downloads to a temporary
+file, verifies the blob, and only then makes it importable.
+
+Each Python job preserves raw JUnit for 14 days, even after a test failure.
+The shared collector is pinned to
+`myon-bioinformatics/myon-bioinformatics@47cca15cd2c70b274c92f4ea036ececa62b796f8`
+and runs after all matrix jobs. Its `failure-identity` artifact includes compact
+JSONL and a collection completeness summary. Missing/invalid/truncated reports
+fail collection explicitly. Commit SHA stays null at this boundary; raw reports
+and compact evidence are not added to Pages. Docs-only runs skip collection.

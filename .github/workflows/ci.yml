@@ -15,6 +15,7 @@ jobs:
     if: needs.changes.outputs.non_docs_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
@@ -22,7 +23,53 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install test dependencies
+        run: python -m pip install -r tests/requirements.txt
+      - name: Fetch pinned xprobe JUnit importer
+        env:
+          XPROBE_COMMIT: 7e7015b2df69ad446b968f6fa49711b5b1dbdd3f
+          XPROBE_BLOB: dbc5b7d55005d6288c072a7612584d6170c216f4
+        run: |
+          set -euo pipefail
+          mkdir -p build/shared
+          rm -f build/shared/xprobe.py
+          curl -fsSLo build/shared/xprobe.py.tmp "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/$XPROBE_COMMIT/xprobe.py"
+          python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          data = Path("build/shared/xprobe.py.tmp").read_bytes()
+          actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+          if actual != os.environ["XPROBE_BLOB"]:
+              raise SystemExit("Importer verification failed")
+          PY
+          mv build/shared/xprobe.py.tmp build/shared/xprobe.py
       - name: Compile
         run: python -m py_compile ascii_artist.py
-      - name: Test
-        run: python -m unittest discover -s tests -v
+      - name: Verify stdlib runtime isolation
+        run: python -S -c "import ascii_artist; assert ascii_artist.__name__ == 'ascii_artist'"
+      - name: Test with JUnit
+        env:
+          PYTHONPATH: build/shared
+        run: |
+          mkdir -p build/test-results
+          python -m pytest -q --junitxml="build/test-results/pytest-${{ matrix.python-version }}.xml"
+      - name: Preserve raw JUnit
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: junit-py${{ matrix.python-version }}
+          path: build/test-results/pytest-${{ matrix.python-version }}.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  failure-identity:
+    needs: [changes, test]
+    if: always() && needs.changes.outputs.non_docs_changed == 'true'
+    permissions:
+      contents: read
+      actions: read
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@47cca15cd2c70b274c92f4ea036ececa62b796f8
+    with:
+      artifact-pattern: "junit-py*"
+      output-artifact: "failure-identity"
