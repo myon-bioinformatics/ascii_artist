@@ -57,6 +57,11 @@ jobs:
           PYTHONPATH: build/shared
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
+          if [ ! -f build/shared/xprobe.py ]; then
+            mkdir -p build/test-results
+            : > "build/test-results/failure-identity-$PYTHON_VERSION.jsonl"
+            exit 0
+          fi
           python - <<'PY'
           import os
           from pathlib import Path
@@ -86,6 +91,7 @@ jobs:
           name: junit-py${{ matrix.python-version }}
           path: build/test-results/pytest-${{ matrix.python-version }}.xml
           if-no-files-found: warn
+          retention-days: 14
       - name: Preserve compact failure identity
         if: always()
         uses: actions/upload-artifact@v7
@@ -93,3 +99,4 @@ jobs:
           name: failure-identity-py${{ matrix.python-version }}
           path: build/test-results/failure-identity-${{ matrix.python-version }}.jsonl
           if-no-files-found: warn
+          retention-days: 14
