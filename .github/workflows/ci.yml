@@ -6,11 +6,17 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    name: Change detection
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@76a9e43fe7469d0e3a5728e0521bc5738afad725
+
   test:
+    needs: changes
+    if: needs.changes.outputs.non_docs_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
