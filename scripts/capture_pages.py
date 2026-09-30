@@ -86,6 +86,8 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
                 expect(output).to_have_text(expected_output, use_inner_text=False)
                 assert output.text_content() == expected_output, "ASCII spacing/escaping changed"
                 assert output.evaluate("el => getComputedStyle(el).whiteSpace") in {"pre", "pre-wrap", "break-spaces"}
+                colors = output.evaluate("el => ({color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor})")
+                assert colors == {"color": "rgb(22, 27, 34)", "background": "rgb(216, 222, 228)"}, colors
                 assert_in_view(output, page)
                 page.screenshot(path=results / "ascii-output.png", animations="disabled")
                 page.goto(base + "/repository-diagnostics.html")

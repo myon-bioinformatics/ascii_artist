@@ -13,7 +13,7 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "myon-bioinformatics/ascii_artist"
-WEB_UI_SHA = "adb23d7ba6ea94672b76457573f6655a081ee054"
+WEB_UI_SHA = "34129d546c39ca961b12e926b944cc1b7f37f5e3"
 WEB_UI_BASE = f"https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@{WEB_UI_SHA}"
 JSON_NAME = "repository-diagnostics.json"
 JSONL_NAME = "repository-diagnostics.jsonl"

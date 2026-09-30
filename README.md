@@ -270,7 +270,7 @@ with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 The Pages build now renders actual `branch()` and `get_template()` output through
 `to_web_ui_v1_html()` at `ascii-output.html`, preserving escaping and whitespace.
 The Chromium desktop lane asserts exact preformatted output, viewport bounds,
-and canonical repository/commit/time in the existing diagnostics page before
+computed dark-text/grey-background colors, and canonical repository/commit/time in the existing diagnostics page before
 capturing `ascii-output.png` and `repository-diagnostics.png`. Shared CSS/JS are
 served from a separately pinned web-ui checkout, so capture does not depend on a CDN.
 

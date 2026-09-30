@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: myon-bioinformatics/web-ui
-          ref: adb23d7ba6ea94672b76457573f6655a081ee054
+          ref: 34129d546c39ca961b12e926b944cc1b7f37f5e3
           path: .web-ui
           persist-credentials: false
       - uses: actions/setup-python@v7
