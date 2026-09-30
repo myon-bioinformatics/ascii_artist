@@ -32,15 +32,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/shared
-          curl -fsSLo build/shared/xprobe.py "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/$XPROBE_COMMIT/xprobe.py"
+          rm -f build/shared/xprobe.py
+          curl -fsSLo build/shared/xprobe.py.tmp "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/$XPROBE_COMMIT/xprobe.py"
           python - <<'PY'
           import hashlib
           import os
           from pathlib import Path
-          data = Path("build/shared/xprobe.py").read_bytes()
+          data = Path("build/shared/xprobe.py.tmp").read_bytes()
           actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
-          assert actual == os.environ["XPROBE_BLOB"], (actual, os.environ["XPROBE_BLOB"])
+          if actual != os.environ["XPROBE_BLOB"]:
+              raise SystemExit("Importer verification failed")
           PY
+          mv build/shared/xprobe.py.tmp build/shared/xprobe.py
       - name: Compile
         run: python -m py_compile ascii_artist.py
       - name: Verify stdlib runtime isolation
