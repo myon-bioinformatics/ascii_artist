@@ -24,8 +24,11 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
     def test_vendor_provenance_matches_bytes(self):
         contract = json.loads((ROOT / "vendor/repository_metadata_contract.provenance.json").read_text())
         resolver = json.loads((ROOT / "vendor/github_public_resolver.provenance.json").read_text())
+        inspector = json.loads((ROOT / "vendor/git_inspector.provenance.json").read_text())
         self.assertEqual(git_blob_sha(ROOT / "vendor/repository_metadata_contract.py"), contract["blob_sha"])
         self.assertEqual(git_blob_sha(ROOT / "vendor/github_public_resolver.py"), resolver["blob_sha"])
+        self.assertEqual(git_blob_sha(ROOT / "vendor/git_inspector.py"), inspector["blob_sha"])
+        self.assertEqual(inspector["source_commit"], "cffa7017c95634bfb6ed6b269d255d56680a894c")
 
     def test_write_outputs_roundtrips_metadata(self):
         record = diagnostics.CONTRACT.build_repository_record(
@@ -179,6 +182,26 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             self.assertIs(payload["resolver"], evidence)
         with mock.patch.object(diagnostics.RESOLVER, "resolve_public_github", side_effect=ValueError("ref must be a simple Git ref")):
             self.assertEqual(diagnostics.build_payload(record)["resolver"]["reason"], "unsupported_ref")
+
+    def test_tracked_bytes_uses_canonical_inspector_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "space 日本語.txt").write_bytes(b"abc")
+            with mock.patch.object(diagnostics, "ROOT", root), mock.patch.object(
+                diagnostics.GIT_INSPECTOR,
+                "ls_files",
+                return_value={"paths": ["space 日本語.txt", "missing.txt"], "truncated": False},
+            ):
+                self.assertEqual(diagnostics._tracked_bytes(), 3)
+
+    def test_tracked_bytes_rejects_incomplete_inventory(self):
+        with mock.patch.object(
+            diagnostics.GIT_INSPECTOR,
+            "ls_files",
+            return_value={"paths": ["partial"], "truncated": True},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "truncated"):
+                diagnostics._tracked_bytes()
 
 
 if __name__ == "__main__":
