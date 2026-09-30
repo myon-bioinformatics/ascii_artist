@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import platform
-import subprocess
 import sys
 from types import ModuleType
 from typing import Any, Mapping
@@ -36,15 +35,16 @@ def _load_vendor(name: str, *, canonical_name: bool = False) -> ModuleType:
 CONTRACT = _load_vendor("repository_metadata_contract", canonical_name=True)
 GENERATOR = _load_vendor("repository_metadata_generator")
 RESOLVER = _load_vendor("github_public_resolver")
+GIT_INSPECTOR = _load_vendor("git_inspector")
 
 
 def _tracked_bytes() -> int:
-    raw = subprocess.check_output(["git", "-C", str(ROOT), "ls-files", "-z"])
+    observation = GIT_INSPECTOR.ls_files(ROOT)
+    if observation["truncated"]:
+        raise RuntimeError("tracked-file inventory was truncated")
     total = 0
-    for item in raw.split(b"\0"):
-        if not item:
-            continue
-        path = ROOT / item.decode("utf-8", errors="surrogateescape")
+    for item in observation["paths"]:
+        path = ROOT / item
         if path.is_file():
             total += path.stat().st_size
     return total
