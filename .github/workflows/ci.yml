@@ -8,7 +8,7 @@ on:
 jobs:
   changes:
     name: Change detection
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@main
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@76a9e43fe7469d0e3a5728e0521bc5738afad725
 
   test:
     needs: changes
