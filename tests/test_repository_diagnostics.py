@@ -95,12 +95,29 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             provenance = json.loads(path.with_suffix(".provenance.json").read_text())
             self.assertEqual(provenance["source_repository"], "myon-bioinformatics/Ironmate")
             self.assertEqual(provenance["source_path"], name + ".py")
-            self.assertEqual(provenance["source_commit"], _locked('vendor/repository_metadata_contract.py')['commit'])
+            self.assertEqual(provenance["source_commit"], _locked('vendor/' + name + '.py')['commit'])
             self.assertEqual(provenance["schema_version"], "1.0")
             self.assertEqual(provenance["blob_sha"], blob)
             self.assertEqual(git_blob_sha(path), blob)
             self.assertEqual(provenance["sha256"], digest)
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+
+    def test_producer_pair_validates_distinct_source_commits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            entries = {}
+            for index, name in enumerate(("repository_metadata_contract", "repository_metadata_generator"), 1):
+                destination = "vendor/" + name + ".py"
+                entry = dict(_locked(destination), commit=str(index) * 40)
+                entries[destination] = entry
+                path = root / destination
+                path.parent.mkdir(exist_ok=True)
+                shutil.copyfile(ROOT / destination, path)
+                record = json.loads((ROOT / destination).with_suffix(".provenance.json").read_text(encoding="utf-8"))
+                record["source_commit"] = entry["commit"]
+                path.with_suffix(".provenance.json").write_text(json.dumps(record), encoding="utf-8")
+            with mock.patch.dict(globals(), {"ROOT": root, "_locked": lambda destination: entries[destination]}):
+                self.test_producer_pair_matches_finalized_source()
 
     def test_checkout_identity_equivalence_refs_and_detached_head(self):
         with tempfile.TemporaryDirectory() as tmp:
