@@ -52,6 +52,7 @@ jobs:
       - name: Test with JUnit
         env:
           PYTHONPATH: build/shared
+          ASCII_FAILURE_EVIDENCE: build/controlled-failure
         run: |
           mkdir -p build/test-results
           python -m pytest -q --junitxml="build/test-results/pytest-${{ matrix.python-version }}.xml"
@@ -62,6 +63,14 @@ jobs:
           name: junit-py${{ matrix.python-version }}
           path: build/test-results/pytest-${{ matrix.python-version }}.xml
           if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve controlled child evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: controlled-failure-py${{ matrix.python-version }}
+          path: build/controlled-failure/
+          if-no-files-found: error
           retention-days: 14
 
   failure-identity:

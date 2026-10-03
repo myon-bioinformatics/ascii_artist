@@ -65,6 +65,37 @@ The fixed fixture contains the actual model-like output:
 
 Lesson: sanitizer fixtures should model the external text exactly. Do not escape syntax merely to make the surrounding source visually convenient.
 
+## Controlled pytest failure evidence
+
+Issue #26 adds a domain integration example in
+`tests/test_junit_failure_identity.py::test_real_child_failure_evidence`.
+It calls the real square/triangle generators with intentionally wrong
+expectations: two parameterized assertion failures, one setup error, one pass
+and one skip. Both runs, with and without JUnit, must exit 1 and report the same
+outcome counts. The outer regression passes only when those failures are expected;
+ordinary suite failures still fail the existing pytest CI step.
+
+The existing provenance-pinned xprobe importer converts the actual child XML into
+three compact failure/error identities, retaining both parameter variants without
+publishing their labels, assertion messages, tracebacks or captured output.
+The raw sentinel checks ensure privacy assertions exercise real report content.
+No failed input is reconstructed or treated as learned.
+
+CI writes raw XML and child exit status before verification, then compact JSONL
+as soon as computed, into the separate `controlled-failure-py*` Actions artifact
+(14 days). This is outside the ordinary `junit-py*` collector pattern, whose
+canonical pin and exact expected reports are unchanged. Raw XML is never sent
+to Pages. Public repo artifacts can be downloaded by signed-in users; this
+controlled fixture contains only dummy sentinels. Commit identity remains null.
+For a local evidence run, set `ASCII_FAILURE_EVIDENCE` to a new directory:
+existing destinations are rejected to avoid stale evidence.
+
+Generic native/JUnit classification and receipt edge cases remain upstream in
+[xprobe #7](https://github.com/myon-bioinformatics/xprobe/pull/7), merged as
+`37d582ee4039d2803335b54e855ed770caedabfc`. This repo keeps only its producer
+integration and existing importer checks; it adds no native adapter or runtime
+dependency. The existing importer pin is retained because its API is sufficient.
+
 ## Regex rules
 
 Sanitization regexes should stay deliberately narrow:
