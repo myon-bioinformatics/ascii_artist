@@ -284,3 +284,6 @@ do not count as success. Available screenshots, receipts, canonical JSON and tra
 upload even after failure (14 days), with an artifact link in the job summary.
 Firefox/WebKit/mobile and pixel regression are unmeasured; no intentional capture skips.
 See the [shared guide](https://github.com/myon-bioinformatics/browser-test-kit/blob/3a054c777a98300ee272e4458990b849c32a7ef0/docs/screenshot-evidence.md).
+
+
+Public source placement and automatic Python CI updates: [vendor automation](docs/vendor-automation.md).

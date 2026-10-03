@@ -12,6 +12,12 @@ from unittest import mock
 
 from scripts import repository_diagnostics as diagnostics
 
+
+def _locked(destination):
+    root = Path(__file__).resolve().parents[1]
+    lock = json.loads((root / "vendor.lock.json").read_text(encoding="utf-8"))
+    return next(e for e in lock["files"] if e["destination"] == destination)
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -28,7 +34,7 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
         self.assertEqual(git_blob_sha(ROOT / "vendor/repository_metadata_contract.py"), contract["blob_sha"])
         self.assertEqual(git_blob_sha(ROOT / "vendor/github_public_resolver.py"), resolver["blob_sha"])
         self.assertEqual(git_blob_sha(ROOT / "vendor/git_inspector.py"), inspector["blob_sha"])
-        self.assertEqual(inspector["source_commit"], "cffa7017c95634bfb6ed6b269d255d56680a894c")
+        self.assertEqual(inspector["source_commit"], _locked('vendor/git_inspector.py')['commit'])
         self.assertEqual(hashlib.sha256((ROOT / "vendor/git_inspector.py").read_bytes()).hexdigest(), inspector["sha256"])
 
     def test_write_outputs_roundtrips_metadata(self):
@@ -76,12 +82,12 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
     def test_producer_pair_matches_finalized_source(self):
         expected = {
             "repository_metadata_contract": (
-                "a61a2949e58a42635b0830289e368b4125b1274b",
-                "c8093d806756925b68978b5a40a218e4acd5daf43f2d7fc2e358cabf8dc39e9a",
+                _locked('vendor/repository_metadata_contract.py')['blob_sha'],
+                _locked('vendor/repository_metadata_contract.py')['sha256'],
             ),
             "repository_metadata_generator": (
-                "eef572ce64e92bfecf0451235f884aa208044587",
-                "a2edc91cc0a269d8b2fc6a9be1cfa0edbfae18604d53a1b9ebdcb72004be9a06",
+                _locked('vendor/repository_metadata_generator.py')['blob_sha'],
+                _locked('vendor/repository_metadata_generator.py')['sha256'],
             ),
         }
         for name, (blob, digest) in expected.items():
@@ -89,7 +95,7 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             provenance = json.loads(path.with_suffix(".provenance.json").read_text())
             self.assertEqual(provenance["source_repository"], "myon-bioinformatics/Ironmate")
             self.assertEqual(provenance["source_path"], name + ".py")
-            self.assertEqual(provenance["source_commit"], "0aee64da2f8d0119a3ef9b955e5c3818f28aaf92")
+            self.assertEqual(provenance["source_commit"], _locked('vendor/repository_metadata_contract.py')['commit'])
             self.assertEqual(provenance["schema_version"], "1.0")
             self.assertEqual(provenance["blob_sha"], blob)
             self.assertEqual(git_blob_sha(path), blob)
