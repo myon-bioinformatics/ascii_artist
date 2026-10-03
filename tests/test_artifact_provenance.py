@@ -5,13 +5,19 @@ from pathlib import Path
 import unittest
 
 
+def _locked(destination):
+    root = Path(__file__).resolve().parents[1]
+    lock = json.loads((root / "vendor.lock.json").read_text(encoding="utf-8"))
+    return next(e for e in lock["files"] if e["destination"] == destination)
+
+
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "ascii_artist.py"
 VALIDATOR = ROOT / "vendor" / "python_artifact_provenance.py"
 PROVENANCE = ROOT / "vendor" / "python_artifact_provenance.provenance.json"
-EXPECTED_SOURCE_COMMIT = "b9c079bb55c1349abb47f67a09bbf0dbcf54bca9"
-EXPECTED_SOURCE_BLOB = "89b1954f623b8ad596974d59fa4f3728a90341a3"
-EXPECTED_SOURCE_SHA256 = "b67a594c5de260697f77f3512332e091a3d0eec9cb5a1d61a10d65c9246c2de3"
+EXPECTED_SOURCE_COMMIT = _locked('vendor/python_artifact_provenance.py')['commit']
+EXPECTED_SOURCE_BLOB = _locked('vendor/python_artifact_provenance.py')['blob_sha']
+EXPECTED_SOURCE_SHA256 = _locked('vendor/python_artifact_provenance.py')['sha256']
 EXPECTED_ARTIFACT_BASE_SHA = "7c21bacfac7b60327b77f9b31a87869ef7838a7e"
 
 
