@@ -5,3 +5,4 @@ vendor/repository_metadata_contract.py -text
 vendor/repository_metadata_generator.py -text
 vendor/mcp-toolcall-lab-LICENSE -text
 vendor/Ironmate-LICENSE -text
+vendor/myon-bioinformatics-LICENSE -text
