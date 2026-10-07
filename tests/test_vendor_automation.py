@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/ci.yml'
 TEST_JOB = 'test'
 HELPER = 'scripts/sync_vendor_provenance.py'
-SNAPSHOT = ['vendor/myon-bioinformatics-LICENSE', 'vendor.lock.json',
+SNAPSHOT = ['vendor/gh_identity.py', 'vendor/gh_identity-LICENSE', 'vendor/myon-bioinformatics-LICENSE', 'vendor.lock.json',
  'vendor/git_inspector.py',
  'vendor/github_public_resolver.py',
  'vendor/python_artifact_provenance.py',
@@ -26,7 +26,9 @@ SNAPSHOT = ['vendor/myon-bioinformatics-LICENSE', 'vendor.lock.json',
  'vendor/python_artifact_provenance.provenance.json',
  'vendor/repository_metadata_contract.provenance.json',
  'vendor/repository_metadata_generator.provenance.json']
-EXPECTED = {('myon-bioinformatics/myon-bioinformatics', 'LICENSE', 'vendor/myon-bioinformatics-LICENSE'),
+EXPECTED = {('myon-bioinformatics/gh_identity', 'gh_identity.py', 'vendor/gh_identity.py'),
+ ('myon-bioinformatics/gh_identity', 'LICENSE', 'vendor/gh_identity-LICENSE'),
+ ('myon-bioinformatics/myon-bioinformatics', 'LICENSE', 'vendor/myon-bioinformatics-LICENSE'),
  ('myon-bioinformatics/Ironmate', 'LICENSE', 'vendor/Ironmate-LICENSE'),
  ('myon-bioinformatics/Ironmate',
   'python_artifact_provenance.py',
