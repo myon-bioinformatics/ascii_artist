@@ -1,9 +1,14 @@
 # Public vendor placement in CI
 
-Ordinary push/PR CI restores locked files and updates the explicit public source
+Ordinary push/PR CI restores locked files and promotes the explicit public source
 allowlist once in `resolve-vendor`. The primary Python test job, including its
 matrix variants, downloads the same verified snapshot. Existing documentation-only change detection is retained.
 Dispatch defaults to `update`; `vendor-mode: locked` reproduces the baseline.
+The `update` input runs canonical `vendor_sync.py promote`: it resolves and
+verifies a candidate once, places it in this disposable checkout, and emits a
+`vendor-promotion/1` receipt in `vendor-promotion.json`. The Bash pipeline uses
+`set -euo pipefail`; JSON validation and a subsequent lock check must also pass.
+Promotion failure remains a failed job even when `tee` succeeds.
 No dedicated token, enable variable, scheduled update PR or main writeback is
 required. Source acquisition uses anonymous HTTP/public Git in the pinned shared
 stdlib tool. Checkout credentials are not persisted.
@@ -26,14 +31,38 @@ remain nonzero. Public Actions artifacts can be downloaded by signed-in users;
 raw reports are not added to Pages. Existing runtime dependencies, unrelated
 browser/Docker workflows and deployment settings are preserved.
 
+Successful update-mode resolve and per-Python snapshots contain the existing 16
+files plus the promotion receipt (17 files). In `vendor-mode: locked`, those same
+jobs retain only the 16 baseline files. The independent `test-locked` job always
+retains those 16 files and never creates or requires a promotion receipt.
+An artifact retained after a failure is diagnostic evidence, not a successful
+promotion. The receipt describes verified placement; test results are separate.
+
+## Enrolled GHI
+
+`vendor/gh_identity.py` and `vendor/gh_identity-LICENSE` are locked to reviewed
+GHI commit `fc2c527257b12eb99c00637bbae74f8988fd6bf4`. Their exact source and
+LICENSE bytes remain protected by `.gitattributes` `-text` entries. GHI is
+enrolled in the allowlist without becoming an `ascii_artist.py` runtime
+dependency. Locked materialization regenerates it alongside the other files.
+
+Both the primary Python matrix and the independent locked lane directly load
+the verified `vendor/gh_identity.py` with `python -S` before running tests. This
+checks that the current module is stdlib-loadable without site packages. It does
+not exercise GHI's GitHub operations or prove that every future version is free
+of filesystem, process, or network I/O. Source review and any future integration
+tests remain necessary for those behaviors.
+
 ALM agents can use the same mechanism in a disposable checkout:
 
 ```bash
+set -euo pipefail
 git clone https://github.com/myon-bioinformatics/myon-bioinformatics.git .vendor-sync-tools
 git -C .vendor-sync-tools checkout --detach 08dc3757deeb930c950bdcc6bd55ec3112ba49fc
 python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
 python -S .vendor-sync-tools/vendor_sync.py materialize --manifest vendor.lock.json
-python -S .vendor-sync-tools/vendor_sync.py update --manifest vendor.lock.json
+python -S .vendor-sync-tools/vendor_sync.py promote --manifest vendor.lock.json | tee vendor-promotion.json
+python -S -m json.tool vendor-promotion.json > /dev/null
 python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
 python -S scripts/sync_vendor_provenance.py
 ```
@@ -50,7 +79,7 @@ now tests the checked-in baseline on one representative Python version on every
 selected push/PR run. It verifies local bytes, removes the allowlisted files,
 materializes their exact upstream commits, verifies again and projects provenance
 before running the existing Python suite. It never downloads the candidate
-snapshot or runs update. Locked evidence uses a `locked-` artifact prefix and is
+snapshot or runs promotion. Locked evidence uses a `locked-` artifact prefix and is
 retained on failure; it is separate from candidate JUnit collection.
 
 Pages/Docker continue shipping checked-in bytes; no source is written back to
@@ -66,13 +95,13 @@ Updates happen only when the existing workflow/change filters select the run.
 There is no upstream-only scheduler. Separate push and pull-request events are
 separate runs and can each resolve upstream once.
 
-The pinned shared tool uses anonymous public Git fallback for both `update`
-and locked `materialize` on HTTP 403/429. Locked placement preserves each entry's
+The pinned shared tool uses anonymous public Git fallback for candidate
+acquisition in `promote` and locked `materialize` on HTTP 403/429. Locked placement preserves each entry's
 exact commit and verifies Git blob/SHA-256 before writing; other errors remain nonzero.
 
 The small projection adapter is consumer-owned because existing provenance
 schemas differ. Acquisition and verification stay in the shared pinned tool;
 unifying projection needs an explicit schema contract rather than guessed aliases.
 
-The shared profile MIT LICENSE is now explicitly locked at `443b8a94bbc6801332e0abd9f2e56da68173b38d`
-and included in resolved and locked evidence. Existing source pins and bytes are unchanged.
+The shared profile MIT LICENSE is explicitly locked at `443b8a94bbc6801332e0abd9f2e56da68173b38d`
+and included in resolved and locked evidence.

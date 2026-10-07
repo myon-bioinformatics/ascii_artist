@@ -26,6 +26,7 @@ SNAPSHOT = ['vendor/gh_identity.py', 'vendor/gh_identity-LICENSE', 'vendor/myon-
  'vendor/python_artifact_provenance.provenance.json',
  'vendor/repository_metadata_contract.provenance.json',
  'vendor/repository_metadata_generator.provenance.json']
+PROMOTION_RECEIPT = "${{ inputs.vendor-mode != 'locked' && 'vendor-promotion.json' || '' }}"
 EXPECTED = {('myon-bioinformatics/gh_identity', 'gh_identity.py', 'vendor/gh_identity.py'),
  ('myon-bioinformatics/gh_identity', 'LICENSE', 'vendor/gh_identity-LICENSE'),
  ('myon-bioinformatics/myon-bioinformatics', 'LICENSE', 'vendor/myon-bioinformatics-LICENSE'),
@@ -87,7 +88,9 @@ def test_public_vendor_ci_updates_without_repository_writes():
     assert update["shell"] == "bash"
     assert 'continue-on-error' not in update
     assert update['run'].splitlines() == [
-        'python -S .vendor-sync-tools/vendor_sync.py update --manifest vendor.lock.json',
+        'set -euo pipefail',
+        'python -S .vendor-sync-tools/vendor_sync.py promote --manifest vendor.lock.json | tee vendor-promotion.json',
+        'python -S -m json.tool vendor-promotion.json > /dev/null',
         'python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json']
     recreate = next(s for s in resolve if s.get("name") == "Recreate locked vendor files from GitHub")
     assert recreate["shell"] == "bash"
@@ -111,7 +114,8 @@ def test_public_vendor_ci_updates_without_repository_writes():
     assert ci['on']['workflow_dispatch']['inputs']['vendor-mode']['default'] == 'update'
     needs = jobs[TEST_JOB]['needs']
     assert 'resolve-vendor' in ([needs] if isinstance(needs, str) else needs)
-    assert sum('vendor_sync.py update' in s.get('run', '') for steps in (resolve,test) for s in steps) == 1
+    assert sum('vendor_sync.py promote' in s.get('run', '') for steps in (resolve,test) for s in steps) == 1
+    assert not any('vendor_sync.py update' in s.get('run', '') for steps in (resolve,test) for s in steps)
     download = next(i for i,s in enumerate(test) if s.get('name') == 'Download resolved vendor snapshot')
     verify = next(i for i,s in enumerate(test) if s.get('name') == 'Verify resolved vendor snapshot')
     tests = [i for i,s in enumerate(test) if 'pytest ' in s.get('run','')]
@@ -127,7 +131,7 @@ def test_public_vendor_ci_updates_without_repository_writes():
         upload = next(s for s in steps if s.get('name') == name)
         assert upload['if'] == 'always()'
         assert upload['with']['if-no-files-found'] == 'error'
-        assert set(upload['with']['path'].splitlines()) == set(SNAPSHOT)
+        assert set(upload['with']['path'].splitlines()) == set(SNAPSHOT) | {PROMOTION_RECEIPT}
     pins = [s['with']['ref'] for steps in (resolve,test) for s in steps
             if s.get('with',{}).get('repository') == 'myon-bioinformatics/myon-bioinformatics']
     assert pins == ['08dc3757deeb930c950bdcc6bd55ec3112ba49fc'] * 2
@@ -141,18 +145,39 @@ def test_public_vendor_ci_updates_without_repository_writes():
     assert not any(x in text for x in ('secrets.', 'VENDOR_UPDATE_TOKEN','VENDOR_UPDATES_ENABLED','GH_TOKEN'))
 
 
-def test_failed_update_does_not_reach_successful_check(tmp_path):
+@pytest.mark.parametrize('failure', ['promote', 'invalid-receipt'])
+def test_failed_promotion_does_not_reach_successful_check(tmp_path, failure):
     update = next(s for s in _workflow()['jobs']['resolve-vendor']['steps']
                   if s.get('name') == 'Update public vendor files for this run')
     tool = tmp_path / '.vendor-sync-tools/vendor_sync.py'
     tool.parent.mkdir()
-    tool.write_text("import pathlib, sys\nif sys.argv[1] == 'update': sys.exit(2)\npathlib.Path('check-reached').touch()\n", encoding='utf-8')
+    action = "sys.exit(2)" if failure == 'promote' else "print('invalid receipt'); sys.exit(0)"
+    tool.write_text("import pathlib, sys\nif sys.argv[1] == 'promote': " + action +
+                    "\npathlib.Path('check-reached').touch()\n", encoding='utf-8')
     script = tmp_path / 'update.sh'
     script.write_text(update['run'].replace('python -S ', shlex.quote(sys.executable)+' -S '), encoding='utf-8')
     result = subprocess.run([shutil.which('bash'),'--noprofile','--norc','-e','-o','pipefail',str(script)],
                             cwd=tmp_path,capture_output=True,text=True,timeout=30)
-    assert result.returncode == 2
+    assert result.returncode == (2 if failure == 'promote' else 1)
     assert not (tmp_path / 'check-reached').exists()
+
+
+@pytest.mark.parametrize('job', [TEST_JOB, 'test-locked'])
+def test_enrolled_ghi_loads_with_stdlib_after_verification(job):
+    steps = _workflow()['jobs'][job]['steps']
+    load = next(i for i, step in enumerate(steps)
+                if step.get('name') == 'Verify enrolled GHI is stdlib-loadable')
+    checked = [i for i, step in enumerate(steps)
+               if 'vendor_sync.py check' in step.get('run', '')]
+    tests = [i for i, step in enumerate(steps) if 'pytest ' in step.get('run', '')]
+    assert checked and tests and max(checked) < load < min(tests)
+    command = steps[load]['run']
+    assert command.startswith('python -S ')
+    assert "'vendor/gh_identity.py'" in command
+    result = subprocess.run(
+        shlex.split(command.replace('python -S ', shlex.quote(sys.executable) + ' -S ', 1)),
+        cwd=ROOT, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
 
 
 def test_updated_lock_projects_exact_identity_and_keeps_reader_formats(tmp_path):
@@ -267,7 +292,8 @@ def test_locked_baseline_runs_automatically_without_candidate_snapshot():
     matrix = job.get('strategy', {}).get('matrix', {})
     assert all(len(values) == 1 for values in matrix.values())
     steps = job['steps']
-    assert not any('vendor_sync.py update' in s.get('run', '') for s in steps)
+    assert not any(command in s.get('run', '') for s in steps
+                   for command in ('vendor_sync.py update', 'vendor_sync.py promote'))
     assert not any(s.get('uses', '').startswith('actions/download-artifact@') for s in steps)
     verify = next(i for i,s in enumerate(steps) if s.get('name') == 'Verify checked-in vendor copies')
     recreate = next(i for i,s in enumerate(steps) if s.get('name') == 'Recreate locked vendor files from GitHub')
