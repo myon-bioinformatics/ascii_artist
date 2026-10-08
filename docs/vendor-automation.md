@@ -31,10 +31,10 @@ remain nonzero. Public Actions artifacts can be downloaded by signed-in users;
 raw reports are not added to Pages. Existing runtime dependencies, unrelated
 browser/Docker workflows and deployment settings are preserved.
 
-Successful update-mode resolve and per-Python snapshots contain the existing 16
-files plus the promotion receipt (17 files). In `vendor-mode: locked`, those same
-jobs retain only the 16 baseline files. The independent `test-locked` job always
-retains those 16 files and never creates or requires a promotion receipt.
+Resolve and per-Python snapshots contain lock-derived source/LICENSE membership,
+explicit legacy projections and `vendor-evidence.json`. Update-mode snapshots
+also retain an available promotion receipt. In `vendor-mode: locked`, and in
+the independent `test-locked` job, promotion receipts are excluded.
 An artifact retained after a failure is diagnostic evidence, not a successful
 promotion. The receipt describes verified placement; test results are separate.
 
@@ -116,7 +116,6 @@ directory; adding a locked source or LICENSE needs no upload path-list edit.
 Artifact names and repository-relative paths inside each artifact are preserved.
 `vendor-evidence.json` is additional metadata with byte hashes and separate
 locked/candidate, runtime receipt, and legacy projection classifications.
-Earlier file counts in this document describe the pre-staging payload.
 
 Staging runs even after a failed test, verifies every locked byte, and fails
 nonzero on missing or modified members. It does not certify tests or promotion.
