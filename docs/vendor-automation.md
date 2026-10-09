@@ -31,10 +31,10 @@ remain nonzero. Public Actions artifacts can be downloaded by signed-in users;
 raw reports are not added to Pages. Existing runtime dependencies, unrelated
 browser/Docker workflows and deployment settings are preserved.
 
-Successful update-mode resolve and per-Python snapshots contain the existing 16
-files plus the promotion receipt (17 files). In `vendor-mode: locked`, those same
-jobs retain only the 16 baseline files. The independent `test-locked` job always
-retains those 16 files and never creates or requires a promotion receipt.
+Resolve and per-Python snapshots contain lock-derived source/LICENSE membership,
+explicit legacy projections and `vendor-evidence.json`. Update-mode snapshots
+also retain an available promotion receipt. In `vendor-mode: locked`, and in
+the independent `test-locked` job, promotion receipts are excluded.
 An artifact retained after a failure is diagnostic evidence, not a successful
 promotion. The receipt describes verified placement; test results are separate.
 
@@ -58,7 +58,7 @@ ALM agents can use the same mechanism in a disposable checkout:
 ```bash
 set -euo pipefail
 git clone https://github.com/myon-bioinformatics/myon-bioinformatics.git .vendor-sync-tools
-git -C .vendor-sync-tools checkout --detach 08dc3757deeb930c950bdcc6bd55ec3112ba49fc
+git -C .vendor-sync-tools checkout --detach 380d877cd85837f36cf6030d626ee8bb7dfa28cb
 python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
 python -S .vendor-sync-tools/vendor_sync.py materialize --manifest vendor.lock.json
 python -S .vendor-sync-tools/vendor_sync.py promote --manifest vendor.lock.json | tee vendor-promotion.json
@@ -105,3 +105,23 @@ unifying projection needs an explicit schema contract rather than guessed aliase
 
 The shared profile MIT LICENSE is explicitly locked at `443b8a94bbc6801332e0abd9f2e56da68173b38d`
 and included in resolved and locked evidence.
+
+
+## Lock-derived evidence staging
+
+Vendor artifact membership is now derived exclusively by the parent
+`vendor_stage.py`, checked out with `vendor_sync.py` at full commit
+`380d877cd85837f36cf6030d626ee8bb7dfa28cb`. Workflow uploads point to its generated
+directory; adding a locked source or LICENSE needs no upload path-list edit.
+Artifact names and repository-relative paths inside each artifact are preserved.
+`vendor-evidence.json` is additional metadata with byte hashes and separate
+locked/candidate, runtime receipt, and legacy projection classifications.
+
+Staging runs even after a failed test, verifies every locked byte, and fails
+nonzero on missing or modified members. It does not certify tests or promotion.
+Locked runs exclude promotion receipts; candidate runs include one when present.
+Legacy projection formats, when present, remain consumer-owned outputs of the
+lock. Exact source pins, LICENSEs, test-only dependencies and Pages/MCP/runtime
+behavior are unchanged. Central topology intent is owned by the parent's
+`vendor-consumers.json`; recommended baselines belong to `vendor-catalog.json`;
+this consumer's lock remains the authority for adopted bytes.
