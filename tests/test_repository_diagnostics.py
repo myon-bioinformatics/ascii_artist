@@ -26,27 +26,44 @@ def git_blob_sha(path: Path) -> str:
     return hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
 
 
+def _metadata_v1_record(**overrides):
+    record = {
+        "schema_version": "1.0",
+        "repository": {"full_name": diagnostics.REPOSITORY},
+        "head": {
+            "sha": "b" * 40,
+            "short_sha": "bbbbbbbb",
+            "branch": "main",
+            "timestamp": "2026-09-27T20:00:00+09:00",
+            "subject": "test",
+        },
+        "measurements": {
+            "github_reported_size_bytes": None,
+            "working_tree_bytes": 1,
+            "release_artifact_bytes": None,
+        },
+        "tooling": {"python": "3.12"},
+        "generated_at": "2026-09-27T21:00:00+09:00",
+    }
+    head_overrides = overrides.pop("head", None)
+    record.update(overrides)
+    if head_overrides:
+        record["head"] = {**record["head"], **head_overrides}
+        record["head"]["short_sha"] = record["head"]["sha"][:8]
+    diagnostics.GH_IDENTITY.validate_repository_metadata_v1(record)
+    return record
+
+
 class RepositoryDiagnosticsTests(unittest.TestCase):
     def test_vendor_provenance_matches_bytes(self):
-        contract = json.loads((ROOT / "vendor/repository_metadata_contract.provenance.json").read_text())
         resolver = json.loads((ROOT / "vendor/github_public_resolver.provenance.json").read_text())
-        self.assertEqual(git_blob_sha(ROOT / "vendor/repository_metadata_contract.py"), contract["blob_sha"])
         self.assertEqual(git_blob_sha(ROOT / "vendor/github_public_resolver.py"), resolver["blob_sha"])
         ghi = _locked("vendor/gh_identity.py")
         self.assertEqual(git_blob_sha(ROOT / "vendor/gh_identity.py"), ghi["blob_sha"])
         self.assertEqual(hashlib.sha256((ROOT / "vendor/gh_identity.py").read_bytes()).hexdigest(), ghi["sha256"])
 
     def test_write_outputs_roundtrips_metadata(self):
-        record = diagnostics.CONTRACT.build_repository_record(
-            full_name="myon-bioinformatics/ascii_artist",
-            sha="b" * 40,
-            branch="main",
-            timestamp="2026-09-27T20:00:00+09:00",
-            subject="test",
-            generated_at="2026-09-27T21:00:00+09:00",
-            working_tree_bytes=1,
-            tooling={"python": "3.12"},
-        )
+        record = _metadata_v1_record()
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
             diagnostics, "build_record", return_value=record
         ):
@@ -73,50 +90,11 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
         self.assertIn('https://example.test/a?x=1&amp;y=&quot;2&quot;', html)
         self.assertNotIn('<repo & "quoted">', html)
 
-    def test_generator_uses_pinned_contract_without_sys_path_mutation(self):
-        path = Path(diagnostics.GENERATOR.build_repository_record.__globals__["__file__"])
-        self.assertEqual(path.resolve(), (ROOT / "vendor/repository_metadata_contract.py").resolve())
+    def test_generator_uses_gh_identity_without_sys_path_mutation(self):
+        ghi = diagnostics.GENERATOR.GHI
+        path = Path(ghi.__file__)
+        self.assertEqual(path.resolve(), (ROOT / "vendor/gh_identity.py").resolve())
         self.assertNotIn(str(ROOT / "vendor"), sys.path)
-
-    def test_producer_pair_matches_finalized_source(self):
-        expected = {
-            "repository_metadata_contract": (
-                _locked('vendor/repository_metadata_contract.py')['blob_sha'],
-                _locked('vendor/repository_metadata_contract.py')['sha256'],
-            ),
-            "repository_metadata_generator": (
-                _locked('vendor/repository_metadata_generator.py')['blob_sha'],
-                _locked('vendor/repository_metadata_generator.py')['sha256'],
-            ),
-        }
-        for name, (blob, digest) in expected.items():
-            path = ROOT / "vendor" / (name + ".py")
-            provenance = json.loads(path.with_suffix(".provenance.json").read_text())
-            self.assertEqual(provenance["source_repository"], "myon-bioinformatics/Ironmate")
-            self.assertEqual(provenance["source_path"], name + ".py")
-            self.assertEqual(provenance["source_commit"], _locked('vendor/' + name + '.py')['commit'])
-            self.assertEqual(provenance["schema_version"], "1.0")
-            self.assertEqual(provenance["blob_sha"], blob)
-            self.assertEqual(git_blob_sha(path), blob)
-            self.assertEqual(provenance["sha256"], digest)
-            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
-
-    def test_producer_pair_validates_distinct_source_commits(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            entries = {}
-            for index, name in enumerate(("repository_metadata_contract", "repository_metadata_generator"), 1):
-                destination = "vendor/" + name + ".py"
-                entry = dict(_locked(destination), commit=str(index) * 40)
-                entries[destination] = entry
-                path = root / destination
-                path.parent.mkdir(exist_ok=True)
-                shutil.copyfile(ROOT / destination, path)
-                record = json.loads((ROOT / destination).with_suffix(".provenance.json").read_text(encoding="utf-8"))
-                record["source_commit"] = entry["commit"]
-                path.with_suffix(".provenance.json").write_text(json.dumps(record), encoding="utf-8")
-            with mock.patch.dict(globals(), {"ROOT": root, "_locked": lambda destination: entries[destination]}):
-                self.test_producer_pair_matches_finalized_source()
 
     def test_checkout_identity_equivalence_refs_and_detached_head(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -153,18 +131,23 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             for context, branch in scenarios:
                 with mock.patch.object(diagnostics, "ROOT", root):
                     record = diagnostics.build_record(context, generated_at=now)
-                expected = diagnostics.CONTRACT.build_repository_record(
-                    full_name=diagnostics.REPOSITORY,
-                    sha=head,
-                    branch=branch,
-                    timestamp=git("show", "-s", "--format=%cI", "HEAD"),
-                    subject="feat: synthetic 日本語",
+                expected = diagnostics.GH_IDENTITY.repository_metadata_v1(
+                    root,
+                    repository=diagnostics.REPOSITORY,
+                    env=context,
                     generated_at=now,
-                    working_tree_bytes=len((root / "README.md").read_bytes()),
+                    measurements={"working_tree_bytes": len((root / "README.md").read_bytes())},
                     tooling={"python": platform.python_version()},
                 )
+                expected["head"]["branch"] = branch
+                diagnostics.GH_IDENTITY.validate_repository_metadata_v1(expected)
                 self.assertEqual(record, expected)
-                self.assertEqual(json.loads(diagnostics.CONTRACT.to_jsonl(record)), expected)
+                self.assertEqual(
+                    json.loads(
+                        json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                    ),
+                    expected,
+                )
             git("checkout", "--detach", "-q")
             with mock.patch.object(diagnostics, "ROOT", root):
                 detached = diagnostics.build_record({}, generated_at=now)
@@ -175,7 +158,7 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
 
             standalone = Path(tmp) / "standalone"
             standalone.mkdir()
-            for name in ("repository_metadata_contract.py", "repository_metadata_generator.py"):
+            for name in ("gh_identity.py", "repository_metadata_generator.py"):
                 shutil.copyfile(ROOT / "vendor" / name, standalone / name)
             output = Path(tmp) / "output"
             env = os.environ.copy()
@@ -193,9 +176,15 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             self.assertIsNone(direct["measurements"]["working_tree_bytes"])
 
     def test_payload_preserves_resolver_and_unsupported_ref_behavior(self):
-        record = diagnostics.CONTRACT.build_repository_record(
-            full_name=diagnostics.REPOSITORY, sha="b" * 40, branch="feature/example",
-            timestamp="2026-09-29T01:02:03Z", subject="test", generated_at="2026-09-29T01:02:03Z",
+        record = _metadata_v1_record(
+            head={
+                "sha": "b" * 40,
+                "short_sha": "bbbbbbbb",
+                "branch": "feature/example",
+                "timestamp": "2026-09-29T01:02:03Z",
+                "subject": "test",
+            },
+            generated_at="2026-09-29T01:02:03Z",
         )
         evidence = {"status": "not_checked"}
         with mock.patch.object(diagnostics.RESOLVER, "resolve_public_github", return_value=evidence) as resolver:

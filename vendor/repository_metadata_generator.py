@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
 """Generate canonical repository metadata JSON and JSONL from a Git checkout.
 
-Keep this file beside repository_metadata_contract.py when vendoring it.
+Requires vendored gh_identity.py in the same directory.
 """
 from __future__ import annotations
 
 import argparse
+import importlib.util
 from collections.abc import Mapping
-from datetime import datetime, timezone
 from pathlib import Path
 import os
-import subprocess
+import sys
+from types import ModuleType
 
-from repository_metadata_contract import build_repository_record, to_json, to_jsonl
+
+def _load_gh_identity() -> ModuleType:
+    path = Path(__file__).with_name("gh_identity.py")
+    spec = importlib.util.spec_from_file_location("gh_identity", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load gh_identity: {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault(spec.name, module)
+    spec.loader.exec_module(module)
+    return module
 
 
-def git(*args: str, cwd: Path) -> str:
-    result = subprocess.run(
-        ["git", "-c", "i18n.logOutputEncoding=UTF-8", *args],
-        cwd=cwd,
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-    return result.stdout.strip()
+GHI = _load_gh_identity()
 
 
 def record_from_checkout(
@@ -36,40 +37,26 @@ def record_from_checkout(
     working_tree_bytes: int | None = None,
     release_artifact_bytes: int | None = None,
     tooling: Mapping[str, str] | None = None,
+    generated_at: str | None = None,
 ) -> dict:
     env = os.environ if env is None else env
-    sha = git("rev-parse", "HEAD", cwd=root)
-    branch = (
-        (env.get("GITHUB_HEAD_REF") or "").strip()
-        or (env.get("GITHUB_REF_NAME") or "").strip()
-        or git("rev-parse", "--abbrev-ref", "HEAD", cwd=root)
-    )
-    if branch == "HEAD":
-        branch = "detached"
-    timestamp = git("show", "-s", "--format=%cI", "HEAD", cwd=root)
-    subject = git("show", "-s", "--format=%s", "HEAD", cwd=root)
-    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    return build_repository_record(
-        full_name=full_name,
-        sha=sha,
-        branch=branch,
-        timestamp=timestamp,
-        subject=subject,
+    return GHI.repository_metadata_v1(
+        root,
+        repository=full_name,
+        env=env,
         generated_at=generated_at,
-        github_reported_size_bytes=github_reported_size_bytes,
-        working_tree_bytes=working_tree_bytes,
-        release_artifact_bytes=release_artifact_bytes,
         tooling=dict(tooling or {}),
+        measurements={
+            "github_reported_size_bytes": github_reported_size_bytes,
+            "working_tree_bytes": working_tree_bytes,
+            "release_artifact_bytes": release_artifact_bytes,
+        },
     )
 
 
 def write_metadata(record: dict, output_dir: Path) -> tuple[Path, Path]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    json_path = output_dir / "repository-metadata.json"
-    jsonl_path = output_dir / "repository-metadata.jsonl"
-    json_path.write_text(to_json(record), encoding="utf-8")
-    jsonl_path.write_text(to_jsonl(record), encoding="utf-8")
-    return json_path, jsonl_path
+    paths = GHI.write_repository_metadata(record, output_dir)
+    return output_dir / paths["json"], output_dir / paths["jsonl"]
 
 
 def main(argv: list[str] | None = None) -> int:

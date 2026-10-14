@@ -80,9 +80,6 @@ jobs:
           python -S .vendor-sync-tools/vendor_stage.py
           --manifest vendor.lock.json --kind "$VENDOR_EVIDENCE_KIND" --output build/vendor-evidence-candidate
           --legacy-evidence vendor/github_public_resolver.provenance.json
-          --legacy-evidence vendor/python_artifact_provenance.provenance.json
-          --legacy-evidence vendor/repository_metadata_contract.provenance.json
-          --legacy-evidence vendor/repository_metadata_generator.provenance.json
           --promotion-receipt vendor-promotion.json
       - name: Preserve resolved vendor snapshot
         if: always()
@@ -192,9 +189,6 @@ jobs:
           python -S .vendor-sync-tools/vendor_stage.py
           --manifest vendor.lock.json --kind "$VENDOR_EVIDENCE_KIND" --output build/vendor-evidence-test
           --legacy-evidence vendor/github_public_resolver.provenance.json
-          --legacy-evidence vendor/python_artifact_provenance.provenance.json
-          --legacy-evidence vendor/repository_metadata_contract.provenance.json
-          --legacy-evidence vendor/repository_metadata_generator.provenance.json
           --promotion-receipt vendor-promotion.json
       - name: Preserve vendor lock used by this run
         if: always()
@@ -314,9 +308,6 @@ jobs:
         python -S .vendor-sync-tools/vendor_stage.py
         --manifest vendor.lock.json --kind locked --output build/vendor-evidence-locked
         --legacy-evidence vendor/github_public_resolver.provenance.json
-        --legacy-evidence vendor/python_artifact_provenance.provenance.json
-        --legacy-evidence vendor/repository_metadata_contract.provenance.json
-        --legacy-evidence vendor/repository_metadata_generator.provenance.json
     - name: Preserve vendor lock used by this run
       if: always()
       uses: actions/upload-artifact@v7
