@@ -32,14 +32,12 @@ def _load_vendor(name: str, *, canonical_name: bool = False) -> ModuleType:
     return module
 
 
-CONTRACT = _load_vendor("repository_metadata_contract", canonical_name=True)
-GENERATOR = _load_vendor("repository_metadata_generator")
 RESOLVER = _load_vendor("github_public_resolver")
-GIT_INSPECTOR = _load_vendor("git_inspector")
+GH_IDENTITY = _load_vendor("gh_identity", canonical_name=True)
 
 
 def _tracked_bytes() -> int:
-    observation = GIT_INSPECTOR.ls_files(ROOT)
+    observation = GH_IDENTITY.git_ls_files(ROOT)
     if observation["truncated"]:
         raise RuntimeError("tracked-file inventory was truncated")
     total = 0
@@ -56,16 +54,16 @@ def build_record(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     env = os.environ if env is None else env
-    record = GENERATOR.record_from_checkout(
+    record = GH_IDENTITY.repository_metadata_v1(
         ROOT,
-        REPOSITORY,
+        repository=REPOSITORY,
         env=env,
-        working_tree_bytes=_tracked_bytes(),
+        measurements={"working_tree_bytes": _tracked_bytes()},
         tooling={"python": platform.python_version()},
     )
     if generated_at is not None:
         record["generated_at"] = generated_at
-        CONTRACT.validate_repository_record(record)
+        GH_IDENTITY.validate_repository_metadata_v1(record)
     return record
 
 
@@ -155,7 +153,11 @@ def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:
         json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
         encoding="utf-8",
     )
-    (out_dir / JSONL_NAME).write_text(CONTRACT.to_jsonl(record), encoding="utf-8")
+    GH_IDENTITY.validate_repository_metadata_v1(record)
+    (out_dir / JSONL_NAME).write_text(
+        json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
     (out_dir / HTML_NAME).write_text(page_html(), encoding="utf-8")
     return payload
 

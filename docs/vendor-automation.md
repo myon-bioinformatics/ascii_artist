@@ -1,127 +1,58 @@
 # Public vendor placement in CI
 
-Ordinary push/PR CI restores locked files and promotes the explicit public source
-allowlist once in `resolve-vendor`. The primary Python test job, including its
-matrix variants, downloads the same verified snapshot. Existing documentation-only change detection is retained.
-Dispatch defaults to `update`; `vendor-mode: locked` reproduces the baseline.
-The `update` input runs canonical `vendor_sync.py promote`: it resolves and
-verifies a candidate once, places it in this disposable checkout, and emits a
-`vendor-promotion/1` receipt in `vendor-promotion.json`. The Bash pipeline uses
-`set -euo pipefail`; JSON validation and a subsequent lock check must also pass.
-Promotion failure remains a failed job even when `tee` succeeds.
-No dedicated token, enable variable, scheduled update PR or main writeback is
-required. Source acquisition uses anonymous HTTP/public Git in the pinned shared
-stdlib tool. Checkout credentials are not persisted.
+Ordinary push/PR CI restores locked files from explicit commit pins in
+`vendor.lock.json`, verifies bytes with the shared `vendor_sync.py` tool, and
+runs the existing Python test matrix against the verified snapshot. Existing
+documentation-only change detection is retained.
 
-`vendor.lock.json` is the acquisition contract: exact commit, Git blob and SHA-256
-for every source and available upstream LICENSE. Existing provenance JSON field
-names stay compatible with current readers. The consumer's explicit stdlib
-projection script verifies all source/license bytes before rewriting those
-records from the lock; it does not infer aliases or import candidates. Tests
-cross-check identity and hashes against the lock rather than a second static pin.
-The projection is idempotent and rejected source/license bytes leave metadata
-untouched. Upstream embedded artifact headers are preserved verbatim.
+`vendor.lock.json` is the only provenance record for vendored files (schema
+`vendor-lock/1`). Each entry pins `repository`, full 40-hex `ref` and `commit`,
+`source`, `destination`, Git `blob_sha`, and `sha256`. No per-file
+`*.provenance.json` sidecars or local projection scripts are used.
 
-Source repositories that have LICENSE files carry their exact LICENSE bytes.
-The shared profile MIT LICENSE is explicitly enrolled from its merged license commit.
+The pinned shared stdlib tool is checked out from
+`myon-bioinformatics/myon-bioinformatics` at commit
+`f907560c2b9b3f7a0f78f4434f547f91cb2ef954`. CI runs
+`vendor_sync.py check --manifest vendor.lock.json` and, in `resolve-vendor`,
+removes allowlisted destinations and `materialize`s them again before staging
+evidence. Checkout credentials are not persisted; source acquisition uses
+anonymous public Git.
 
-The source/license/lock and compatibility records are retained in Actions both
-before and after testing with `if: always()` and missing-file errors. Failures
-remain nonzero. Public Actions artifacts can be downloaded by signed-in users;
-raw reports are not added to Pages. Existing runtime dependencies, unrelated
-browser/Docker workflows and deployment settings are preserved.
-
-Resolve and per-Python snapshots contain lock-derived source/LICENSE membership,
-explicit legacy projections and `vendor-evidence.json`. Update-mode snapshots
-also retain an available promotion receipt. In `vendor-mode: locked`, and in
-the independent `test-locked` job, promotion receipts are excluded.
-An artifact retained after a failure is diagnostic evidence, not a successful
-promotion. The receipt describes verified placement; test results are separate.
+Lock-derived evidence is staged with `vendor_stage.py` from the same parent
+checkout (`--kind locked`). Artifacts retain `vendor-evidence.json` and copied
+lock members; staging runs with `if: always()` and fails closed on missing or
+modified bytes.
 
 ## Enrolled GHI
 
 `vendor/gh_identity.py` and `vendor/gh_identity-LICENSE` are locked to reviewed
-GHI commit `fc2c527257b12eb99c00637bbae74f8988fd6bf4`. Their exact source and
+GHI commit `c6b52a29d8cd1dce0ebe0c4288cd16b0e4b84b96`. Their exact source and
 LICENSE bytes remain protected by `.gitattributes` `-text` entries. GHI is
 enrolled in the allowlist without becoming an `ascii_artist.py` runtime
-dependency. Locked materialization regenerates it alongside the other files.
+dependency.
 
-Both the primary Python matrix and the independent locked lane directly load
-the verified `vendor/gh_identity.py` with `python -S` before running tests. This
-checks that the current module is stdlib-loadable without site packages. It does
-not exercise GHI's GitHub operations or prove that every future version is free
-of filesystem, process, or network I/O. Source review and any future integration
-tests remain necessary for those behaviors.
+Both the primary Python matrix and the independent `test-locked` job load the
+verified `vendor/gh_identity.py` with `python -S` before running tests.
 
-ALM agents can use the same mechanism in a disposable checkout:
+ALM agents can reproduce verification in a disposable checkout:
 
 ```bash
 set -euo pipefail
 git clone https://github.com/myon-bioinformatics/myon-bioinformatics.git .vendor-sync-tools
-git -C .vendor-sync-tools checkout --detach 380d877cd85837f36cf6030d626ee8bb7dfa28cb
+git -C .vendor-sync-tools checkout --detach f907560c2b9b3f7a0f78f4434f547f91cb2ef954
 python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
 python -S .vendor-sync-tools/vendor_sync.py materialize --manifest vendor.lock.json
-python -S .vendor-sync-tools/vendor_sync.py promote --manifest vendor.lock.json | tee vendor-promotion.json
-python -S -m json.tool vendor-promotion.json > /dev/null
 python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
-python -S scripts/sync_vendor_provenance.py
 ```
 
-Run the existing Python suite with its test-only dependencies after projection.
-The shared tool rejects edited baseline copies before contacting upstream.
-Cross-repository rollout: myon-bioinformatics/myon-bioinformatics#35. Existing
-JUnit work remains tracked separately in myon-bioinformatics/myon-bioinformatics#22.
+Run the existing Python suite with its test-only dependencies after verification.
 
 ## What a green run covers
 
-The primary Python job tests the updated snapshot. A separate `test-locked` job
-now tests the checked-in baseline on one representative Python version on every
-selected push/PR run. It verifies local bytes, removes the allowlisted files,
-materializes their exact upstream commits, verifies again and projects provenance
-before running the existing Python suite. It never downloads the candidate
-snapshot or runs promotion. Locked evidence uses a `locked-` artifact prefix and is
-retained on failure; it is separate from candidate JUnit collection.
+The primary Python job tests the materialized snapshot from `resolve-vendor`. The
+separate `test-locked` job tests the checked-in baseline on Python 3.12: verify,
+materialize, verify again, then run the suite. Locked evidence uses a
+`locked-` artifact prefix.
 
 Pages/Docker continue shipping checked-in bytes; no source is written back to
-main. Green `test-locked` covers that baseline on its one Python version, not the
-whole candidate matrix. `vendor-mode: locked` remains available for a full primary
-matrix baseline run, but no dispatch is required for routine baseline coverage.
-
-The resolve job's summary lists changed source/LICENSE paths and old/new commits.
-It describes the candidate only; baseline test results belong to `test-locked`.
-A failed update remains red even if the independent baseline job succeeds.
-
-Updates happen only when the existing workflow/change filters select the run.
-There is no upstream-only scheduler. Separate push and pull-request events are
-separate runs and can each resolve upstream once.
-
-The pinned shared tool uses anonymous public Git fallback for candidate
-acquisition in `promote` and locked `materialize` on HTTP 403/429. Locked placement preserves each entry's
-exact commit and verifies Git blob/SHA-256 before writing; other errors remain nonzero.
-
-The small projection adapter is consumer-owned because existing provenance
-schemas differ. Acquisition and verification stay in the shared pinned tool;
-unifying projection needs an explicit schema contract rather than guessed aliases.
-
-The shared profile MIT LICENSE is explicitly locked at `443b8a94bbc6801332e0abd9f2e56da68173b38d`
-and included in resolved and locked evidence.
-
-
-## Lock-derived evidence staging
-
-Vendor artifact membership is now derived exclusively by the parent
-`vendor_stage.py`, checked out with `vendor_sync.py` at full commit
-`380d877cd85837f36cf6030d626ee8bb7dfa28cb`. Workflow uploads point to its generated
-directory; adding a locked source or LICENSE needs no upload path-list edit.
-Artifact names and repository-relative paths inside each artifact are preserved.
-`vendor-evidence.json` is additional metadata with byte hashes and separate
-locked/candidate, runtime receipt, and legacy projection classifications.
-
-Staging runs even after a failed test, verifies every locked byte, and fails
-nonzero on missing or modified members. It does not certify tests or promotion.
-Locked runs exclude promotion receipts; candidate runs include one when present.
-Legacy projection formats, when present, remain consumer-owned outputs of the
-lock. Exact source pins, LICENSEs, test-only dependencies and Pages/MCP/runtime
-behavior are unchanged. Central topology intent is owned by the parent's
-`vendor-consumers.json`; recommended baselines belong to `vendor-catalog.json`;
-this consumer's lock remains the authority for adopted bytes.
+main.
