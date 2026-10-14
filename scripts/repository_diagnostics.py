@@ -32,7 +32,6 @@ def _load_vendor(name: str, *, canonical_name: bool = False) -> ModuleType:
     return module
 
 
-GENERATOR = _load_vendor("repository_metadata_generator")
 RESOLVER = _load_vendor("github_public_resolver")
 GH_IDENTITY = _load_vendor("gh_identity", canonical_name=True)
 
@@ -55,11 +54,11 @@ def build_record(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     env = os.environ if env is None else env
-    record = GENERATOR.record_from_checkout(
+    record = GH_IDENTITY.repository_metadata_v1(
         ROOT,
-        REPOSITORY,
+        repository=REPOSITORY,
         env=env,
-        working_tree_bytes=_tracked_bytes(),
+        measurements={"working_tree_bytes": _tracked_bytes()},
         tooling={"python": platform.python_version()},
     )
     if generated_at is not None:

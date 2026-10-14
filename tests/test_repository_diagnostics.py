@@ -91,7 +91,7 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
         self.assertNotIn('<repo & "quoted">', html)
 
     def test_generator_uses_gh_identity_without_sys_path_mutation(self):
-        ghi = diagnostics.GENERATOR.GHI
+        ghi = diagnostics.GH_IDENTITY
         path = Path(ghi.__file__)
         self.assertEqual(path.resolve(), (ROOT / "vendor/gh_identity.py").resolve())
         self.assertNotIn(str(ROOT / "vendor"), sys.path)
@@ -158,14 +158,13 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
 
             standalone = Path(tmp) / "standalone"
             standalone.mkdir()
-            for name in ("gh_identity.py", "repository_metadata_generator.py"):
-                shutil.copyfile(ROOT / "vendor" / name, standalone / name)
+            shutil.copyfile(ROOT / "vendor/gh_identity.py", standalone / "gh_identity.py")
             output = Path(tmp) / "output"
             env = os.environ.copy()
             for name in ("PYTHONPATH", "GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
                 env.pop(name, None)
             subprocess.run(
-                [sys.executable, "-S", str(standalone / "repository_metadata_generator.py"),
+                [sys.executable, "-S", str(standalone / "gh_identity.py"), "repo-metadata", "--format", "v1",
                  "--root", str(root), "--repository", diagnostics.REPOSITORY,
                  "--output-dir", str(output)],
                 cwd=tmp, env=env, check=True,
