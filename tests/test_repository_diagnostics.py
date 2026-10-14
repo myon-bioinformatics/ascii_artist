@@ -30,12 +30,11 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
     def test_vendor_provenance_matches_bytes(self):
         contract = json.loads((ROOT / "vendor/repository_metadata_contract.provenance.json").read_text())
         resolver = json.loads((ROOT / "vendor/github_public_resolver.provenance.json").read_text())
-        inspector = json.loads((ROOT / "vendor/git_inspector.provenance.json").read_text())
         self.assertEqual(git_blob_sha(ROOT / "vendor/repository_metadata_contract.py"), contract["blob_sha"])
         self.assertEqual(git_blob_sha(ROOT / "vendor/github_public_resolver.py"), resolver["blob_sha"])
-        self.assertEqual(git_blob_sha(ROOT / "vendor/git_inspector.py"), inspector["blob_sha"])
-        self.assertEqual(inspector["source_commit"], _locked('vendor/git_inspector.py')['commit'])
-        self.assertEqual(hashlib.sha256((ROOT / "vendor/git_inspector.py").read_bytes()).hexdigest(), inspector["sha256"])
+        ghi = _locked("vendor/gh_identity.py")
+        self.assertEqual(git_blob_sha(ROOT / "vendor/gh_identity.py"), ghi["blob_sha"])
+        self.assertEqual(hashlib.sha256((ROOT / "vendor/gh_identity.py").read_bytes()).hexdigest(), ghi["sha256"])
 
     def test_write_outputs_roundtrips_metadata(self):
         record = diagnostics.CONTRACT.build_repository_record(
@@ -212,16 +211,16 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             root = Path(tmp)
             (root / "space 日本語.txt").write_bytes(b"abc")
             with mock.patch.object(diagnostics, "ROOT", root), mock.patch.object(
-                diagnostics.GIT_INSPECTOR,
-                "ls_files",
+                diagnostics.GH_IDENTITY,
+                "git_ls_files",
                 return_value={"paths": ["space 日本語.txt", "missing.txt"], "truncated": False},
             ):
                 self.assertEqual(diagnostics._tracked_bytes(), 3)
 
     def test_tracked_bytes_rejects_incomplete_inventory(self):
         with mock.patch.object(
-            diagnostics.GIT_INSPECTOR,
-            "ls_files",
+            diagnostics.GH_IDENTITY,
+            "git_ls_files",
             return_value={"paths": ["partial"], "truncated": True},
         ):
             with self.assertRaisesRegex(RuntimeError, "truncated"):

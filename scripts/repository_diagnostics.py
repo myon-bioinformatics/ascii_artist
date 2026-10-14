@@ -35,11 +35,11 @@ def _load_vendor(name: str, *, canonical_name: bool = False) -> ModuleType:
 CONTRACT = _load_vendor("repository_metadata_contract", canonical_name=True)
 GENERATOR = _load_vendor("repository_metadata_generator")
 RESOLVER = _load_vendor("github_public_resolver")
-GIT_INSPECTOR = _load_vendor("git_inspector")
+GH_IDENTITY = _load_vendor("gh_identity", canonical_name=True)
 
 
 def _tracked_bytes() -> int:
-    observation = GIT_INSPECTOR.ls_files(ROOT)
+    observation = GH_IDENTITY.git_ls_files(ROOT)
     if observation["truncated"]:
         raise RuntimeError("tracked-file inventory was truncated")
     total = 0

@@ -79,7 +79,6 @@ jobs:
         run: >-
           python -S .vendor-sync-tools/vendor_stage.py
           --manifest vendor.lock.json --kind "$VENDOR_EVIDENCE_KIND" --output build/vendor-evidence-candidate
-          --legacy-evidence vendor/git_inspector.provenance.json
           --legacy-evidence vendor/github_public_resolver.provenance.json
           --legacy-evidence vendor/python_artifact_provenance.provenance.json
           --legacy-evidence vendor/repository_metadata_contract.provenance.json
@@ -192,7 +191,6 @@ jobs:
         run: >-
           python -S .vendor-sync-tools/vendor_stage.py
           --manifest vendor.lock.json --kind "$VENDOR_EVIDENCE_KIND" --output build/vendor-evidence-test
-          --legacy-evidence vendor/git_inspector.provenance.json
           --legacy-evidence vendor/github_public_resolver.provenance.json
           --legacy-evidence vendor/python_artifact_provenance.provenance.json
           --legacy-evidence vendor/repository_metadata_contract.provenance.json
@@ -315,7 +313,6 @@ jobs:
       run: >-
         python -S .vendor-sync-tools/vendor_stage.py
         --manifest vendor.lock.json --kind locked --output build/vendor-evidence-locked
-        --legacy-evidence vendor/git_inspector.provenance.json
         --legacy-evidence vendor/github_public_resolver.provenance.json
         --legacy-evidence vendor/python_artifact_provenance.provenance.json
         --legacy-evidence vendor/repository_metadata_contract.provenance.json

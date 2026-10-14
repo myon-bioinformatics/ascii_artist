@@ -11,14 +11,7 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-BINDINGS = [['vendor/git_inspector.provenance.json',
-  'vendor/git_inspector.py',
-  {'blob_sha': 'blob_sha',
-   'sha256': 'sha256',
-   'source_commit': 'commit',
-   'source_path': 'source',
-   'source_repository': 'repository'}],
- ['vendor/github_public_resolver.provenance.json',
+BINDINGS = [['vendor/github_public_resolver.provenance.json',
   'vendor/github_public_resolver.py',
   {'blob_sha': 'blob_sha',
    'sha256': 'sha256',
@@ -62,8 +55,7 @@ EXPECTED = {('myon-bioinformatics/gh_identity', 'gh_identity.py', 'vendor/gh_ide
  ('myon-bioinformatics/mcp-toolcall-lab', 'LICENSE', 'vendor/mcp-toolcall-lab-LICENSE'),
  ('myon-bioinformatics/mcp-toolcall-lab',
   'src/mcp_toolcall_lab/github_public_resolver.py',
-  'vendor/github_public_resolver.py'),
- ('myon-bioinformatics/myon-bioinformatics', 'git_inspector.py', 'vendor/git_inspector.py')}
+  'vendor/github_public_resolver.py')}
 
 
 def records(root):

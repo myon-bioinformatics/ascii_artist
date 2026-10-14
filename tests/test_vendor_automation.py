@@ -14,14 +14,12 @@ WORKFLOW = '.github/workflows/ci.yml'
 TEST_JOB = 'test'
 HELPER = 'scripts/sync_vendor_provenance.py'
 SNAPSHOT = ['vendor/gh_identity.py', 'vendor/gh_identity-LICENSE', 'vendor/myon-bioinformatics-LICENSE', 'vendor.lock.json',
- 'vendor/git_inspector.py',
  'vendor/github_public_resolver.py',
  'vendor/python_artifact_provenance.py',
  'vendor/repository_metadata_contract.py',
  'vendor/repository_metadata_generator.py',
  'vendor/mcp-toolcall-lab-LICENSE',
  'vendor/Ironmate-LICENSE',
- 'vendor/git_inspector.provenance.json',
  'vendor/github_public_resolver.provenance.json',
  'vendor/python_artifact_provenance.provenance.json',
  'vendor/repository_metadata_contract.provenance.json',
@@ -43,8 +41,7 @@ EXPECTED = {('myon-bioinformatics/gh_identity', 'gh_identity.py', 'vendor/gh_ide
  ('myon-bioinformatics/mcp-toolcall-lab', 'LICENSE', 'vendor/mcp-toolcall-lab-LICENSE'),
  ('myon-bioinformatics/mcp-toolcall-lab',
   'src/mcp_toolcall_lab/github_public_resolver.py',
-  'vendor/github_public_resolver.py'),
- ('myon-bioinformatics/myon-bioinformatics', 'git_inspector.py', 'vendor/git_inspector.py')}
+  'vendor/github_public_resolver.py')}
 
 
 def _workflow():
