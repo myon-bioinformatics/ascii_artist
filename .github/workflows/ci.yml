@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: read
     needs: changes
-    if: needs.changes.outputs.non_docs_changed == 'true'
+    if: needs.changes.outputs.product_changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -59,13 +59,13 @@ jobs:
 
   changes:
     name: Change detection
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@f907560c2b9b3f7a0f78f4434f547f91cb2ef954
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@40bd74c4a36896509b506d6d06251255be6c77c7
 
   test:
     permissions:
       contents: read
     needs: [changes, resolve-vendor]
-    if: needs.changes.outputs.non_docs_changed == 'true'
+    if: needs.changes.outputs.product_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -162,7 +162,7 @@ jobs:
 
   failure-identity:
     needs: [changes, test]
-    if: always() && needs.changes.outputs.non_docs_changed == 'true'
+    if: always() && needs.changes.outputs.product_changed == 'true'
     permissions:
       contents: read
       actions: read
@@ -177,7 +177,7 @@ jobs:
     permissions:
       contents: read
     needs: changes
-    if: needs.changes.outputs.non_docs_changed == 'true'
+    if: needs.changes.outputs.product_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
