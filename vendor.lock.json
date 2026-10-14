@@ -3,7 +3,7 @@
   "files": [
     {
       "repository": "myon-bioinformatics/mcp-toolcall-lab",
-      "ref": "refs/heads/main",
+      "ref": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
       "commit": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
       "source": "src/mcp_toolcall_lab/github_public_resolver.py",
       "destination": "vendor/github_public_resolver.py",
@@ -12,7 +12,7 @@
     },
     {
       "repository": "myon-bioinformatics/mcp-toolcall-lab",
-      "ref": "refs/heads/main",
+      "ref": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
       "commit": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
       "source": "LICENSE",
       "destination": "vendor/mcp-toolcall-lab-LICENSE",
@@ -21,7 +21,7 @@
     },
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "refs/heads/main",
+      "ref": "443b8a94bbc6801332e0abd9f2e56da68173b38d",
       "commit": "443b8a94bbc6801332e0abd9f2e56da68173b38d",
       "source": "LICENSE",
       "destination": "vendor/myon-bioinformatics-LICENSE",
@@ -30,7 +30,7 @@
     },
     {
       "repository": "myon-bioinformatics/gh_identity",
-      "ref": "refs/heads/main",
+      "ref": "c6b52a29d8cd1dce0ebe0c4288cd16b0e4b84b96",
       "commit": "c6b52a29d8cd1dce0ebe0c4288cd16b0e4b84b96",
       "source": "gh_identity.py",
       "destination": "vendor/gh_identity.py",
@@ -39,7 +39,7 @@
     },
     {
       "repository": "myon-bioinformatics/gh_identity",
-      "ref": "refs/heads/main",
+      "ref": "c6b52a29d8cd1dce0ebe0c4288cd16b0e4b84b96",
       "commit": "c6b52a29d8cd1dce0ebe0c4288cd16b0e4b84b96",
       "source": "LICENSE",
       "destination": "vendor/gh_identity-LICENSE",

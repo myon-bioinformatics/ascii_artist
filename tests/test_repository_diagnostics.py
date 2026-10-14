@@ -56,7 +56,7 @@ def _metadata_v1_record(**overrides):
 
 class RepositoryDiagnosticsTests(unittest.TestCase):
     def test_vendor_provenance_matches_bytes(self):
-        resolver = json.loads((ROOT / "vendor/github_public_resolver.provenance.json").read_text())
+        resolver = _locked("vendor/github_public_resolver.py")
         self.assertEqual(git_blob_sha(ROOT / "vendor/github_public_resolver.py"), resolver["blob_sha"])
         ghi = _locked("vendor/gh_identity.py")
         self.assertEqual(git_blob_sha(ROOT / "vendor/gh_identity.py"), ghi["blob_sha"])
