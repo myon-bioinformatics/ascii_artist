@@ -181,7 +181,10 @@ def test_updated_lock_projects_exact_identity_and_keeps_reader_formats(tmp_path)
     _copy_snapshot(tmp_path)
     lock_path = tmp_path / 'vendor.lock.json'
     lock = json.loads(lock_path.read_text(encoding='utf-8'))
-    for e in lock['files']: e['commit'] = 'a' * 40
+    for e in lock['files']:
+        e['commit'] = 'a' * 40
+        if e['ref'] != 'refs/heads/main':
+            e['ref'] = e['commit']
     lock_path.write_text(json.dumps(lock),encoding='utf-8')
     projector = _projector()
     projector.project(tmp_path)
