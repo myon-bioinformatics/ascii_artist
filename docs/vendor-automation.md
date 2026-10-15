@@ -12,7 +12,7 @@ documentation-only change detection is retained.
 
 The pinned shared stdlib tool is checked out from
 `myon-bioinformatics/myon-bioinformatics` at commit
-`ab17b409d82f95abc81116af7ff0d3e7bdc4158c`. CI runs
+`9cc33f08f225eaf67d9a00489a1bf15977ebee25`. CI runs
 `vendor_sync.py check --manifest vendor.lock.json` and, in `resolve-vendor`,
 removes allowlisted destinations and `materialize`s them again before staging
 evidence. Checkout credentials are not persisted; source acquisition uses
@@ -39,7 +39,7 @@ ALM agents can reproduce verification in a disposable checkout:
 ```bash
 set -euo pipefail
 git clone https://github.com/myon-bioinformatics/myon-bioinformatics.git .vendor-sync-tools
-git -C .vendor-sync-tools checkout --detach ab17b409d82f95abc81116af7ff0d3e7bdc4158c
+git -C .vendor-sync-tools checkout --detach 9cc33f08f225eaf67d9a00489a1bf15977ebee25
 python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
 python -S .vendor-sync-tools/vendor_sync.py materialize --manifest vendor.lock.json
 python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
