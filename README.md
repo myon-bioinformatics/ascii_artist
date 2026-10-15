@@ -256,7 +256,7 @@ file, verifies the blob, and only then makes it importable.
 
 Each Python job preserves raw JUnit for 14 days, even after a test failure.
 The shared collector is pinned to
-`myon-bioinformatics/myon-bioinformatics@4dfda95d6573250477f991a0421fa6acb9bc0258`
+`myon-bioinformatics/myon-bioinformatics@b000e5967cb7596f6f9f20fe396a686fdc700c16`
 and runs after all matrix jobs. Its `failure-identity` artifact includes compact
 JSONL and a collection completeness summary. Missing/invalid/truncated reports
 fail collection explicitly. Commit SHA stays null at this boundary; raw reports
