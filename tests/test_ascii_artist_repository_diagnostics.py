@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import repository_diagnostics as diagnostics
+from scripts import ascii_artist_repository_diagnostics as diagnostics
 
 
 def _locked(destination):

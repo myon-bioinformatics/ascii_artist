@@ -19,7 +19,7 @@ from threading import Thread
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import ascii_artist as art
-from scripts.repository_diagnostics import WEB_UI_BASE
+from scripts.ascii_artist_repository_diagnostics import WEB_UI_BASE
 
 
 def sample_output() -> str:

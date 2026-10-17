@@ -68,7 +68,7 @@ Lesson: sanitizer fixtures should model the external text exactly. Do not escape
 ## Controlled pytest failure evidence
 
 Issue #26 adds a domain integration example in
-`tests/test_junit_failure_identity.py::test_real_child_failure_evidence`.
+`tests/test_ascii_artist_junit_failure_identity.py::test_real_child_failure_evidence`.
 It calls the real square/triangle generators with intentionally wrong
 expectations: two parameterized assertion failures, one setup error, one pass
 and one skip. Both runs, with and without JUnit, must exit 1 and report the same
