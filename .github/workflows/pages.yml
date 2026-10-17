@@ -61,7 +61,7 @@ jobs:
       - name: Install browser test dependencies
         run: |
           python -m pip install playwright==1.58.0 pytest
-          python -m playwright install --with-deps chromium
+          python -m playwright install --with-deps --only-shell chromium
       - name: Test screenshot scenarios
         run: python -m pytest -q tests/test_capture_pages.py
       - name: Run diagnostics tests
