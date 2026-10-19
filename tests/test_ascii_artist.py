@@ -61,6 +61,35 @@ class AsciiArtistTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ascii_artist.generate_box("text", style="invalid")
 
+    def test_generate_table_single_style(self):
+        headers = ["Name", "Role"]
+        rows = [["Alice", "Admin"], ["Bob", "User"]]
+        table = ascii_artist.generate_table(headers, rows, style="single")
+        self.assertIn("┌───────┬───────┐", table)
+        self.assertIn("│ Name  │ Role  │", table)
+        self.assertIn("├───────┼───────┤", table)
+        self.assertIn("│ Alice │ Admin │", table)
+        self.assertIn("│ Bob   │ User  │", table)
+        self.assertIn("└───────┴───────┘", table)
+
+    def test_generate_table_ascii_and_markdown_styles(self):
+        headers = ["ID", "Val"]
+        rows = [[1, 100]]
+        ascii_table = ascii_artist.generate_table(headers, rows, style="ascii")
+        self.assertIn("+----+-----+", ascii_table)
+        self.assertIn("| ID | Val |", ascii_table)
+
+        md_table = ascii_artist.generate_table(headers, rows, style="markdown")
+        self.assertEqual(md_table, "| ID | Val |\n|----|-----|\n| 1  | 100 |")
+
+    def test_generate_table_validation(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_table([], [])
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_table(["A", "B"], [["only_one"]])
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_table(["A"], [["x"]], style="invalid")
+
     def test_non_positive_sizes_return_empty(self):
         self.assertEqual(ascii_artist.generate_square(0), "")
         self.assertEqual(ascii_artist.generate_triangle(-1), "")

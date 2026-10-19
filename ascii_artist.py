@@ -6,6 +6,7 @@ __all__ = [
     "generate_triangle",
     "generate_diamond",
     "generate_box",
+    "generate_table",
     "get_template",
     "list_templates",
     "render_prompt_ascii",
@@ -45,7 +46,7 @@ from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
-        "square / triangle / diamond / box text-art generation",
+        "square / triangle / diamond / box / table text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
         "Diagram IR with deterministic flow / branch / tree rendering",
@@ -922,6 +923,86 @@ def generate_box(
     ]
 
     return "\n".join([top, *content_lines, bottom])
+
+
+_TABLE_STYLES = {
+    "single": {
+        "tl": "┌", "tm": "┬", "tr": "┐",
+        "ml": "├", "mm": "┼", "mr": "┤",
+        "bl": "└", "bm": "┴", "br": "┘",
+        "h": "─", "v": "│",
+    },
+    "ascii": {
+        "tl": "+", "tm": "+", "tr": "+",
+        "ml": "+", "mm": "+", "mr": "+",
+        "bl": "+", "bm": "+", "br": "+",
+        "h": "-", "v": "|",
+    },
+    "markdown": {
+        "tl": "|", "tm": "|", "tr": "|",
+        "ml": "|", "mm": "|", "mr": "|",
+        "bl": "|", "bm": "|", "br": "|",
+        "h": "-", "v": "|",
+    },
+}
+
+
+def generate_table(
+    headers: Iterable[str],
+    rows: Iterable[Iterable[Any]],
+    *,
+    style: Literal["single", "ascii", "markdown"] = "single",
+) -> str:
+    """Generate a formatted ASCII/Unicode text table from headers and rows."""
+    if style not in _TABLE_STYLES:
+        raise ValueError(f"style must be one of {sorted(_TABLE_STYLES.keys())!r}")
+
+    header_list = [str(h) for h in headers]
+    if not header_list:
+        raise ValueError("headers must not be empty")
+
+    row_list: list[list[str]] = []
+    for row in rows:
+        r = [str(cell) for cell in row]
+        if len(r) != len(header_list):
+            raise ValueError(
+                f"row length ({len(r)}) does not match headers length ({len(header_list)})"
+            )
+        row_list.append(r)
+
+    cols = len(header_list)
+    col_widths = [len(h) for h in header_list]
+    for row in row_list:
+        for i in range(cols):
+            col_widths[i] = max(col_widths[i], len(row[i]))
+
+    chars = _TABLE_STYLES[style]
+
+    def _build_divider(left: str, mid: str, right: str) -> str:
+        parts = [chars["h"] * (w + 2) for w in col_widths]
+        return left + mid.join(parts) + right
+
+    def _build_row(cells: list[str]) -> str:
+        formatted_cells = [f" {cell}{' ' * (col_widths[i] - len(cell))} " for i, cell in enumerate(cells)]
+        return chars["v"] + chars["v"].join(formatted_cells) + chars["v"]
+
+    lines: list[str] = []
+
+    if style == "markdown":
+        lines.append(_build_row(header_list))
+        sep_parts = [chars["h"] * (w + 2) for w in col_widths]
+        lines.append("|" + "|".join(sep_parts) + "|")
+        for row in row_list:
+            lines.append(_build_row(row))
+    else:
+        lines.append(_build_divider(chars["tl"], chars["tm"], chars["tr"]))
+        lines.append(_build_row(header_list))
+        lines.append(_build_divider(chars["ml"], chars["mm"], chars["mr"]))
+        for row in row_list:
+            lines.append(_build_row(row))
+        lines.append(_build_divider(chars["bl"], chars["bm"], chars["br"]))
+
+    return "\n".join(lines)
 
 
 def get_template(name: str) -> str:
