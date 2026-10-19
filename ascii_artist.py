@@ -40,6 +40,7 @@ __all__ = [
 import html
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
@@ -890,6 +891,16 @@ _BOX_STYLES = {
 }
 
 
+def display_width(text: str) -> int:
+    """Terminal cell width: East Asian wide/fullwidth count 2, combining marks and zero-width count 0."""
+    width = 0
+    for ch in text:
+        if unicodedata.combining(ch) or unicodedata.category(ch) in ("Mn", "Me", "Cf"):
+            continue
+        width += 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+    return width
+
+
 def generate_box(
     text: str,
     *,
@@ -901,7 +912,7 @@ def generate_box(
         raise TypeError("text must be a string")
     if not isinstance(padding, int) or isinstance(padding, bool) or padding < 0:
         raise ValueError("padding must be a non-negative integer")
-    if style not in _BOX_STYLES:
+    if not isinstance(style, str) or style not in _BOX_STYLES:
         raise ValueError(f"style must be one of {sorted(_BOX_STYLES.keys())!r}")
 
     chars = _BOX_STYLES[style]
@@ -909,7 +920,7 @@ def generate_box(
     if not lines:
         lines = [""]
 
-    max_len = max(len(line) for line in lines)
+    max_len = max(display_width(line) for line in lines)
     inner_width = max_len + 2 * padding
     pad_str = " " * padding
 
@@ -917,7 +928,7 @@ def generate_box(
     bottom = chars["bl"] + chars["h"] * inner_width + chars["br"]
 
     content_lines = [
-        f"{chars['v']}{pad_str}{line}{' ' * (max_len - len(line))}{pad_str}{chars['v']}"
+        f"{chars['v']}{pad_str}{line}{' ' * (max_len - display_width(line))}{pad_str}{chars['v']}"
         for line in lines
     ]
 

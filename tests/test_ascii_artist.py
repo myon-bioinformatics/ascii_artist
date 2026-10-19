@@ -46,6 +46,22 @@ class AsciiArtistTests(unittest.TestCase):
             "+--+\n|Hi|\n+--+",
         )
 
+    def test_generate_box_counts_wide_and_combining_characters_by_cell(self):
+        self.assertEqual(ascii_artist.display_width("日本"), 4)
+        self.assertEqual(ascii_artist.display_width("e\u0301"), 1)
+        self.assertEqual(
+            ascii_artist.generate_box("日本\nab", padding=0, style="ascii"),
+            "+----+\n|日本|\n|ab  |\n+----+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("e\u0301x", padding=0, style="ascii"),
+            "+--+\n|e\u0301x|\n+--+",
+        )
+
+    def test_generate_box_unhashable_style_is_value_error(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("x", style=["single"])
+
     def test_generate_box_multiline_and_padding(self):
         text = "Hello\nWorld!"
         expected = "┌──────────┐\n│  Hello   │\n│  World!  │\n└──────────┘"
