@@ -7,6 +7,7 @@ __all__ = [
     "generate_diamond",
     "generate_box",
     "generate_table",
+    "generate_progress_bar",
     "get_template",
     "list_templates",
     "render_prompt_ascii",
@@ -46,7 +47,7 @@ from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
-        "square / triangle / diamond / box / table text-art generation",
+        "square / triangle / diamond / box / table / progress bar text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
         "Diagram IR with deterministic flow / branch / tree rendering",
@@ -1003,6 +1004,46 @@ def generate_table(
         lines.append(_build_divider(chars["bl"], chars["bm"], chars["br"]))
 
     return "\n".join(lines)
+
+
+_PROGRESS_STYLES = {
+    "blocks": ("█", "░"),
+    "ascii": ("=", " "),
+    "shade": ("█", "▒"),
+}
+
+
+def generate_progress_bar(
+    progress: float | int,
+    *,
+    width: int = 20,
+    style: Literal["blocks", "ascii", "shade"] = "blocks",
+    show_percent: bool = True,
+) -> str:
+    """Generate a text-based progress bar."""
+    if isinstance(progress, bool) or not isinstance(progress, (int, float)):
+        raise TypeError("progress must be a float or integer")
+    if not isinstance(width, int) or isinstance(width, bool) or width < 1:
+        raise ValueError("width must be an integer >= 1")
+    if style not in _PROGRESS_STYLES:
+        raise ValueError(f"style must be one of {sorted(_PROGRESS_STYLES.keys())!r}")
+
+    clamped = max(0.0, min(1.0, float(progress)))
+    filled_len = int(round(clamped * width))
+    empty_len = width - filled_len
+
+    fill_char, empty_char = _PROGRESS_STYLES[style]
+
+    if style == "ascii" and filled_len > 0 and empty_len > 0:
+        bar = fill_char * (filled_len - 1) + ">" + empty_char * empty_len
+    else:
+        bar = fill_char * filled_len + empty_char * empty_len
+
+    bar_str = f"[{bar}]"
+    if show_percent:
+        pct = int(round(clamped * 100))
+        return f"{bar_str} {pct}%"
+    return bar_str
 
 
 def get_template(name: str) -> str:

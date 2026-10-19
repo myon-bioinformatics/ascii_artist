@@ -90,6 +90,36 @@ class AsciiArtistTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ascii_artist.generate_table(["A"], [["x"]], style="invalid")
 
+    def test_generate_progress_bar_blocks(self):
+        self.assertEqual(
+            ascii_artist.generate_progress_bar(0.5, width=10, style="blocks"),
+            "[█████░░░░░] 50%",
+        )
+        self.assertEqual(
+            ascii_artist.generate_progress_bar(1.0, width=5, show_percent=False),
+            "[█████]",
+        )
+
+    def test_generate_progress_bar_ascii_and_shade_styles(self):
+        self.assertEqual(
+            ascii_artist.generate_progress_bar(0.5, width=10, style="ascii", show_percent=False),
+            "[====>     ]",
+        )
+        self.assertEqual(
+            ascii_artist.generate_progress_bar(0.5, width=10, style="shade", show_percent=False),
+            "[█████▒▒▒▒▒]",
+        )
+
+    def test_generate_progress_bar_validation(self):
+        with self.assertRaises(TypeError):
+            ascii_artist.generate_progress_bar("half")
+        with self.assertRaises(TypeError):
+            ascii_artist.generate_progress_bar(True)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_progress_bar(0.5, width=0)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_progress_bar(0.5, style="invalid")
+
     def test_non_positive_sizes_return_empty(self):
         self.assertEqual(ascii_artist.generate_square(0), "")
         self.assertEqual(ascii_artist.generate_triangle(-1), "")
