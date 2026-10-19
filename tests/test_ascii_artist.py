@@ -120,6 +120,39 @@ class AsciiArtistTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ascii_artist.generate_progress_bar(0.5, style="invalid")
 
+    def test_generate_banner(self):
+        banner = ascii_artist.generate_banner("TITLE", style="star", width=20)
+        self.assertEqual(len(banner), 20)
+        self.assertTrue(banner.startswith("****** TITLE *******"))
+
+        left_banner = ascii_artist.generate_banner("TITLE", style="hash", alignment="left", width=20)
+        self.assertTrue(left_banner.startswith("### TITLE ##########"))
+
+    def test_generate_banner_validation(self):
+        with self.assertRaises(TypeError):
+            ascii_artist.generate_banner(123)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_banner("Multi\nLine")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_banner("Title", style="invalid")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_banner("Title", alignment="invalid")
+
+    def test_generate_badge(self):
+        self.assertEqual(ascii_artist.generate_badge("status", "passing", style="square"), "[ status | passing ]")
+        self.assertEqual(ascii_artist.generate_badge("version", "v1.0", style="rounded"), "( version │ v1.0 )")
+        self.assertEqual(ascii_artist.generate_badge("build", "ok", style="double"), "║ build │ ok ║")
+
+    def test_generate_badge_validation(self):
+        with self.assertRaises(TypeError):
+            ascii_artist.generate_badge(123, "val")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_badge("A\nB", "val")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_badge("tag", "A\nB")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_badge("tag", "val", style="invalid")
+
     def test_non_positive_sizes_return_empty(self):
         self.assertEqual(ascii_artist.generate_square(0), "")
         self.assertEqual(ascii_artist.generate_triangle(-1), "")

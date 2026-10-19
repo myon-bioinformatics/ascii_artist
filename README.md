@@ -17,6 +17,8 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `generate_box()`
 - `generate_table()`
 - `generate_progress_bar()`
+- `generate_banner()`
+- `generate_badge()`
 - `get_template()`
 - `list_templates()`
 - `render_prompt_ascii()`

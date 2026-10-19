@@ -8,6 +8,8 @@ __all__ = [
     "generate_box",
     "generate_table",
     "generate_progress_bar",
+    "generate_banner",
+    "generate_badge",
     "get_template",
     "list_templates",
     "render_prompt_ascii",
@@ -47,7 +49,7 @@ from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
-        "square / triangle / diamond / box / table / progress bar text-art generation",
+        "square / triangle / diamond / box / table / progress bar / banner / badge text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
         "Diagram IR with deterministic flow / branch / tree rendering",
@@ -1044,6 +1046,82 @@ def generate_progress_bar(
         pct = int(round(clamped * 100))
         return f"{bar_str} {pct}%"
     return bar_str
+
+
+_BANNER_STYLES = {
+    "star": "*",
+    "hash": "#",
+    "equal": "=",
+    "dash": "-",
+}
+
+
+def generate_banner(
+    text: str,
+    *,
+    style: Literal["star", "hash", "equal", "dash"] = "star",
+    alignment: Literal["left", "center", "right"] = "center",
+    width: int = 40,
+) -> str:
+    """Generate a stylized text banner line surrounded by border characters."""
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    if "\n" in text or "\r" in text:
+        raise ValueError("banner text must be a single-line string")
+    if style not in _BANNER_STYLES:
+        raise ValueError(f"style must be one of {sorted(_BANNER_STYLES.keys())!r}")
+    if alignment not in {"left", "center", "right"}:
+        raise ValueError("alignment must be 'left', 'center', or 'right'")
+    if not isinstance(width, int) or isinstance(width, bool) or width < 1:
+        raise ValueError("width must be an integer >= 1")
+
+    char = _BANNER_STYLES[style]
+    content = f" {text.strip()} " if text.strip() else ""
+    if len(content) >= width:
+        return f"{char * 3}{content}{char * 3}"
+
+    remaining = width - len(content)
+    if alignment == "center":
+        left = remaining // 2
+        right = remaining - left
+    elif alignment == "left":
+        left = 3
+        right = remaining - left
+    else:
+        right = 3
+        left = remaining - right
+
+    left = max(0, left)
+    right = max(0, right)
+    return f"{char * left}{content}{char * right}"
+
+
+_BADGE_STYLES = {
+    "square": ("[ ", " | ", " ]"),
+    "rounded": ("( ", " │ ", " )"),
+    "double": ("║ ", " │ ", " ║"),
+}
+
+
+def generate_badge(
+    label: str,
+    value: Any,
+    *,
+    style: Literal["square", "rounded", "double"] = "square",
+) -> str:
+    """Generate a terminal-style key-value badge / tag."""
+    if not isinstance(label, str):
+        raise TypeError("label must be a string")
+    if "\n" in label or "\r" in label:
+        raise ValueError("badge label must be a single-line string")
+    val_str = str(value)
+    if "\n" in val_str or "\r" in val_str:
+        raise ValueError("badge value must be a single-line representation")
+    if style not in _BADGE_STYLES:
+        raise ValueError(f"style must be one of {sorted(_BADGE_STYLES.keys())!r}")
+
+    left, sep, right = _BADGE_STYLES[style]
+    return f"{left}{label}{sep}{val_str}{right}"
 
 
 def get_template(name: str) -> str:
