@@ -24,6 +24,43 @@ class AsciiArtistTests(unittest.TestCase):
     def test_generate_diamond(self):
         self.assertEqual(ascii_artist.generate_diamond(2), " *\n***\n *")
 
+    def test_generate_box_single_line(self):
+        expected = "┌───────┐\n│ Hello │\n└───────┘"
+        self.assertEqual(ascii_artist.generate_box("Hello"), expected)
+
+    def test_generate_box_styles(self):
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=0, style="single"),
+            "┌──┐\n│Hi│\n└──┘",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=0, style="double"),
+            "╔══╗\n║Hi║\n╚══╝",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=0, style="rounded"),
+            "╭──╮\n│Hi│\n╰──╯",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=0, style="ascii"),
+            "+--+\n|Hi|\n+--+",
+        )
+
+    def test_generate_box_multiline_and_padding(self):
+        text = "Hello\nWorld!"
+        expected = "┌──────────┐\n│  Hello   │\n│  World!  │\n└──────────┘"
+        self.assertEqual(ascii_artist.generate_box(text, padding=2), expected)
+
+    def test_generate_box_validation(self):
+        with self.assertRaises(TypeError):
+            ascii_artist.generate_box(123)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", padding=-1)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", padding=True)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", style="invalid")
+
     def test_non_positive_sizes_return_empty(self):
         self.assertEqual(ascii_artist.generate_square(0), "")
         self.assertEqual(ascii_artist.generate_triangle(-1), "")
