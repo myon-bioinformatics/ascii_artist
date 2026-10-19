@@ -5,6 +5,7 @@ __all__ = [
     "generate_square",
     "generate_triangle",
     "generate_diamond",
+    "generate_box",
     "get_template",
     "list_templates",
     "render_prompt_ascii",
@@ -44,7 +45,7 @@ from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
-        "square / triangle / diamond text-art generation",
+        "square / triangle / diamond / box text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
         "Diagram IR with deterministic flow / branch / tree rendering",
@@ -871,6 +872,56 @@ def generate_diamond(half_height: int, char: str = "*") -> str:
         for i in range(half_height - 1, 0, -1)
     ]
     return "\n".join(upper + lower)
+
+
+_BOX_STYLES = {
+    "single": {
+        "tl": "┌", "tr": "┐", "bl": "└", "br": "┘", "h": "─", "v": "│"
+    },
+    "double": {
+        "tl": "╔", "tr": "╗", "bl": "╚", "br": "╝", "h": "═", "v": "║"
+    },
+    "rounded": {
+        "tl": "╭", "tr": "╮", "bl": "╰", "br": "╯", "h": "─", "v": "│"
+    },
+    "ascii": {
+        "tl": "+", "tr": "+", "bl": "+", "br": "+", "h": "-", "v": "|"
+    },
+}
+
+
+def generate_box(
+    text: str,
+    *,
+    padding: int = 1,
+    style: Literal["single", "double", "rounded", "ascii"] = "single",
+) -> str:
+    """Generate a bordered text box around single or multi-line text."""
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    if not isinstance(padding, int) or isinstance(padding, bool) or padding < 0:
+        raise ValueError("padding must be a non-negative integer")
+    if style not in _BOX_STYLES:
+        raise ValueError(f"style must be one of {sorted(_BOX_STYLES.keys())!r}")
+
+    chars = _BOX_STYLES[style]
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").splitlines()
+    if not lines:
+        lines = [""]
+
+    max_len = max(len(line) for line in lines)
+    inner_width = max_len + 2 * padding
+    pad_str = " " * padding
+
+    top = chars["tl"] + chars["h"] * inner_width + chars["tr"]
+    bottom = chars["bl"] + chars["h"] * inner_width + chars["br"]
+
+    content_lines = [
+        f"{chars['v']}{pad_str}{line}{' ' * (max_len - len(line))}{pad_str}{chars['v']}"
+        for line in lines
+    ]
+
+    return "\n".join([top, *content_lines, bottom])
 
 
 def get_template(name: str) -> str:
