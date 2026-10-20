@@ -70,8 +70,8 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             out = Path(tmp)
             payload = diagnostics.write_outputs(out, probe=False)
             self.assertEqual(payload["resolver"]["status"], "not_checked")
-            self.assertEqual(json.loads((out / diagnostics.JSONL_NAME).read_text()), record)
-            self.assertEqual(json.loads((out / diagnostics.JSON_NAME).read_text())["metadata"], record)
+            self.assertEqual(json.loads((out / diagnostics.JSONL_NAME).read_text(encoding="utf-8")), record)
+            self.assertEqual(json.loads((out / diagnostics.JSON_NAME).read_text(encoding="utf-8"))["metadata"], record)
             self.assertTrue((out / diagnostics.HTML_NAME).is_file())
 
     def test_page_uses_pinned_renderer(self):
@@ -163,15 +163,17 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             env = os.environ.copy()
             for name in ("PYTHONPATH", "GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
                 env.pop(name, None)
+            # The CLI emits UTF-8 JSON, including the Japanese commit subject.
+            env["PYTHONIOENCODING"] = "utf-8"
             subprocess.run(
                 [sys.executable, "-S", str(standalone / "gh_identity.py"), "repo-metadata", "--format", "v1",
                  "--root", str(root), "--repository", diagnostics.REPOSITORY,
                  "--output-dir", str(output)],
                 cwd=tmp, env=env, check=True,
             )
-            direct = json.loads((output / "repository-metadata.json").read_text())
+            direct = json.loads((output / "repository-metadata.json").read_text(encoding="utf-8"))
             self.assertEqual(direct["head"], detached["head"])
-            self.assertEqual(json.loads((output / "repository-metadata.jsonl").read_text()), direct)
+            self.assertEqual(json.loads((output / "repository-metadata.jsonl").read_text(encoding="utf-8")), direct)
             self.assertIsNone(direct["measurements"]["working_tree_bytes"])
 
     def test_payload_preserves_resolver_and_unsupported_ref_behavior(self):
