@@ -5,6 +5,8 @@ __all__ = [
     "generate_square",
     "generate_triangle",
     "generate_diamond",
+    "generate_circle",
+    "generate_gradient",
     "generate_box",
     "generate_table",
     "generate_progress_bar",
@@ -49,7 +51,7 @@ from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
-        "square / triangle / diamond / box / table / progress bar / banner / badge text-art generation",
+        "square / triangle / diamond / circle / gradient / box / table / progress bar / banner / badge text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
         "Diagram IR with deterministic flow / branch / tree rendering",
@@ -876,6 +878,87 @@ def generate_diamond(half_height: int, char: str = "*") -> str:
         for i in range(half_height - 1, 0, -1)
     ]
     return "\n".join(upper + lower)
+
+
+def generate_circle(
+    radius: int,
+    char: str = "*",
+    *,
+    fill: bool = True,
+    aspect_ratio: float = 2.0,
+) -> str:
+    """Generate a geometric circle/ellipse corrected for terminal cell aspect ratio."""
+    token = _validate_token(char)
+    if radius <= 0:
+        return ""
+    if not isinstance(aspect_ratio, (int, float)) or aspect_ratio <= 0:
+        raise ValueError("aspect_ratio must be a positive float or int")
+
+    rx = radius * aspect_ratio
+    ry = float(radius)
+
+    lines: list[str] = []
+    for y in range(-radius, radius + 1):
+        row_chars: list[str] = []
+        for x in range(-int(round(rx)), int(round(rx)) + 1):
+            val = (x / rx) ** 2 + (y / ry) ** 2
+            if fill:
+                row_chars.append(token if val <= 1.0 else " ")
+            else:
+                # Boundary check for hollow circle
+                inner_val = ((abs(x) - 0.5) / rx) ** 2 + ((abs(y) - 0.5) / ry) ** 2
+                row_chars.append(token if inner_val <= 1.0 < val or abs(val - 1.0) < 0.35 else " ")
+        lines.append("".join(row_chars).rstrip())
+
+    while lines and not lines[0]:
+        lines.pop(0)
+    while lines and not lines[-1]:
+        lines.pop()
+
+    return "\n".join(lines)
+
+
+def generate_gradient(
+    width: int,
+    height: int,
+    *,
+    style: Literal["horizontal", "vertical", "radial"] = "horizontal",
+    chars: str = " ░▒▓█",
+) -> str:
+    """Generate a 2D density gradient map using specified shading characters."""
+    if not isinstance(width, int) or isinstance(width, bool) or width <= 0:
+        raise ValueError("width must be a positive integer")
+    if not isinstance(height, int) or isinstance(height, bool) or height <= 0:
+        raise ValueError("height must be a positive integer")
+    if not isinstance(chars, str) or not chars:
+        raise ValueError("chars must be a non-empty string")
+    if style not in {"horizontal", "vertical", "radial"}:
+        raise ValueError("style must be 'horizontal', 'vertical', or 'radial'")
+
+    num_levels = len(chars)
+    lines: list[str] = []
+
+    cx = (width - 1) / 2.0 if width > 1 else 0.0
+    cy = (height - 1) / 2.0 if height > 1 else 0.0
+    max_r = ((cx ** 2) + (cy ** 2)) ** 0.5 if (cx or cy) else 1.0
+
+    for y in range(height):
+        row: list[str] = []
+        for x in range(width):
+            if style == "horizontal":
+                factor = x / (width - 1) if width > 1 else 0.0
+            elif style == "vertical":
+                factor = y / (height - 1) if height > 1 else 0.0
+            else:  # radial
+                r = (((x - cx) ** 2) + ((y - cy) ** 2)) ** 0.5
+                factor = 1.0 - (r / max_r if max_r > 0 else 0.0)
+
+            factor = max(0.0, min(1.0, factor))
+            idx = int(round(factor * (num_levels - 1)))
+            row.append(chars[idx])
+        lines.append("".join(row))
+
+    return "\n".join(lines)
 
 
 _BOX_STYLES = {

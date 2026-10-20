@@ -153,6 +153,35 @@ class AsciiArtistTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ascii_artist.generate_badge("tag", "val", style="invalid")
 
+    def test_generate_circle(self):
+        circle = ascii_artist.generate_circle(3, "*", fill=True)
+        self.assertIn("*", circle)
+        hollow = ascii_artist.generate_circle(3, "*", fill=False)
+        self.assertIn("*", hollow)
+        self.assertEqual(ascii_artist.generate_circle(0), "")
+
+    def test_generate_circle_validation(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_circle(3, aspect_ratio=0)
+
+    def test_generate_gradient(self):
+        h_grad = ascii_artist.generate_gradient(5, 2, style="horizontal")
+        self.assertEqual(len(h_grad.splitlines()), 2)
+        v_grad = ascii_artist.generate_gradient(2, 5, style="vertical")
+        self.assertEqual(len(v_grad.splitlines()), 5)
+        r_grad = ascii_artist.generate_gradient(5, 5, style="radial")
+        self.assertEqual(len(r_grad.splitlines()), 5)
+
+    def test_generate_gradient_validation(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_gradient(0, 5)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_gradient(5, 0)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_gradient(5, 5, chars="")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_gradient(5, 5, style="invalid")
+
     def test_non_positive_sizes_return_empty(self):
         self.assertEqual(ascii_artist.generate_square(0), "")
         self.assertEqual(ascii_artist.generate_triangle(-1), "")

@@ -14,6 +14,8 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `generate_square()`
 - `generate_triangle()`
 - `generate_diamond()`
+- `generate_circle()`
+- `generate_gradient()`
 - `generate_box()`
 - `generate_table()`
 - `generate_progress_bar()`
