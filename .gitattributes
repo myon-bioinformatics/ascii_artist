@@ -5,3 +5,5 @@ vendor/Ironmate-LICENSE -text
 vendor/myon-bioinformatics-LICENSE -text
 vendor/gh_identity.py -text
 vendor/gh_identity-LICENSE -text
+# Preserve locked vendor bytes on every operating system.
+vendor/* -text

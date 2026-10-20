@@ -38,7 +38,7 @@ jobs:
     name: Pages checks (no browser)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -55,19 +55,19 @@ jobs:
     needs: checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Check out pinned browser-test-kit validators
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/browser-test-kit
           ref: 3a054c777a98300ee272e4458990b849c32a7ef0
           path: .browser-test-kit
           persist-credentials: false
       - name: Check out pinned shared web-ui assets
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/web-ui
           ref: 34129d546c39ca961b12e926b944cc1b7f37f5e3
@@ -100,7 +100,7 @@ jobs:
       - name: Preserve all available Pages evidence
         id: evidence
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: repository-diagnostics-pages
           path: |
@@ -120,7 +120,7 @@ jobs:
             echo "Firefox/WebKit/mobile unmeasured; no pixel regression baseline."
             echo "Failed/partial receipts do not count as success. Evidence (14 days): $ARTIFACT_URL"
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         if: github.ref == 'refs/heads/main'
         with:
           path: _site
@@ -137,4 +137,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
