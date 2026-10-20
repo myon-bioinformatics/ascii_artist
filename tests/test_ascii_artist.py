@@ -182,6 +182,48 @@ class AsciiArtistTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ascii_artist.generate_gradient(5, 5, style="invalid")
 
+    def test_generate_callout(self):
+        callout = ascii_artist.generate_callout("This is a note.", type="note", title="Custom Title")
+        self.assertIn("> 💡 **Custom Title**", callout)
+        self.assertIn("> This is a note.", callout)
+
+        ascii_callout = ascii_artist.generate_callout("Info body", type="info", style="ascii")
+        self.assertIn("> [INFO] **INFO**", ascii_callout)
+
+    def test_generate_callout_validation(self):
+        with self.assertRaises(TypeError):
+            ascii_artist.generate_callout(123)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_callout("text", type="invalid")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_callout("text", style="invalid")
+
+    def test_generate_tree_view(self):
+        structure = {
+            "src": {
+                "main.py": None,
+                "utils": {
+                    "helper.py": None,
+                },
+            },
+            "README.md": None,
+        }
+        tree = ascii_artist.generate_tree_view(structure, root="project", emoji=True)
+        self.assertIn("📁 project", tree)
+        self.assertIn("├── 📁 src", tree)
+        self.assertIn("│   ├── 📄 main.py", tree)
+        self.assertIn("└── 📄 README.md", tree)
+
+        no_emoji_tree = ascii_artist.generate_tree_view(structure, root="project", emoji=False)
+        self.assertIn("project", no_emoji_tree)
+        self.assertNotIn("📁", no_emoji_tree)
+
+    def test_generate_tree_view_validation(self):
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_tree_view({}, root="")
+        with self.assertRaises(TypeError):
+            ascii_artist.generate_tree_view("not_a_mapping")
+
     def test_non_positive_sizes_return_empty(self):
         self.assertEqual(ascii_artist.generate_square(0), "")
         self.assertEqual(ascii_artist.generate_triangle(-1), "")

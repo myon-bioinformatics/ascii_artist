@@ -12,6 +12,8 @@ __all__ = [
     "generate_progress_bar",
     "generate_banner",
     "generate_badge",
+    "generate_callout",
+    "generate_tree_view",
     "get_template",
     "list_templates",
     "render_prompt_ascii",
@@ -51,7 +53,7 @@ from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [
-        "square / triangle / diamond / circle / gradient / box / table / progress bar / banner / badge text-art generation",
+        "square / triangle / diamond / circle / gradient / box / table / progress bar / banner / badge / callout / tree view text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
         "Diagram IR with deterministic flow / branch / tree rendering",
@@ -1205,6 +1207,80 @@ def generate_badge(
 
     left, sep, right = _BADGE_STYLES[style]
     return f"{left}{label}{sep}{val_str}{right}"
+
+
+_CALLOUT_TYPES = {
+    "info": ("ℹ️", "INFO"),
+    "note": ("💡", "NOTE"),
+    "tip": ("🚀", "TIP"),
+    "warning": ("⚠️", "WARNING"),
+    "error": ("❌", "ERROR"),
+    "success": ("✅", "SUCCESS"),
+    "hot": ("🔥", "HOT"),
+}
+
+
+def generate_callout(
+    text: str,
+    *,
+    type: Literal["info", "note", "tip", "warning", "error", "success", "hot"] = "info",
+    title: str | None = None,
+    style: Literal["emoji", "ascii"] = "emoji",
+) -> str:
+    """Generate a Markdown / SNS-style callout block with emoji or ASCII icon."""
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    if type not in _CALLOUT_TYPES:
+        raise ValueError(f"type must be one of {sorted(_CALLOUT_TYPES.keys())!r}")
+    if style not in {"emoji", "ascii"}:
+        raise ValueError("style must be 'emoji' or 'ascii'")
+
+    emoji, label = _CALLOUT_TYPES[type]
+    header_title = title if title is not None else label
+    icon = emoji if style == "emoji" else f"[{label}]"
+    header = f"> {icon} **{header_title}**"
+
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").splitlines()
+    body_lines = [f"> {line}" for line in lines] if lines else [">"]
+
+    return "\n".join([header, *body_lines])
+
+
+def generate_tree_view(
+    data: Mapping[str, Any],
+    *,
+    root: str = ".",
+    emoji: bool = True,
+) -> str:
+    """Generate a file-tree directory view with optional folder/file emoji icons."""
+    if not isinstance(root, str) or not root or "\n" in root or "\r" in root:
+        raise ValueError("root must be a non-empty single-line string")
+    if not isinstance(data, Mapping):
+        raise TypeError("data must be a mapping")
+
+    folder_icon = "📁 " if emoji else ""
+    file_icon = "📄 " if emoji else ""
+
+    lines: list[str] = [f"{folder_icon}{root}"]
+
+    def _build_nodes(items: Mapping[str, Any], prefix: str) -> None:
+        entries = list(items.items())
+        count = len(entries)
+        for index, (key, value) in enumerate(entries):
+            is_last = index == count - 1
+            elbow = "└── " if is_last else "├── "
+            child_prefix = prefix + ("    " if is_last else "│   ")
+
+            if isinstance(value, Mapping) and value:
+                lines.append(f"{prefix}{elbow}{folder_icon}{key}")
+                _build_nodes(value, child_prefix)
+            elif isinstance(value, Mapping) and not value:
+                lines.append(f"{prefix}{elbow}{folder_icon}{key}")
+            else:
+                lines.append(f"{prefix}{elbow}{file_icon}{key}")
+
+    _build_nodes(data, "")
+    return "\n".join(lines)
 
 
 def get_template(name: str) -> str:
