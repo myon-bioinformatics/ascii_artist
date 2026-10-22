@@ -231,7 +231,7 @@ CSS remains consumer-owned, so `ascii_artist.py` keeps its single-file,
 standard-library-only runtime contract.
 
 
-The CI-tested Python versions are **3.12** (baseline) and **3.14** (forward-compatibility check). Python versions outside this tested set are not part of the default CI guarantee.
+The stdlib runtime is CI-tested on Python **3.10–3.14** (`runtime-compatibility`). The full pytest matrix runs on **3.11–3.14**, and the Pages build runs on 3.12. Python versions outside these tested sets are not part of the default CI guarantee.
 
 
 ## Repository diagnostics
@@ -263,7 +263,7 @@ JSONL and a collection completeness summary. Missing/invalid/truncated reports
 fail collection explicitly. Commit SHA stays null at this boundary; raw reports
 and compact evidence are not added to Pages. Docs-only runs skip collection.
 
-The collector requires the exact five matrix report paths. Keep this set aligned
+The collector requires the exact four matrix report paths (Python 3.11–3.14). Keep this set aligned
 with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 
 ## Shared screenshot evidence
@@ -301,8 +301,9 @@ uv run --locked python -m pytest
 python -S -m unittest discover -s tests -p test_ascii_artist.py -v
 ```
 
-`pyproject.toml` is the canonical development dependency definition; legacy
-requirements files remain for downstream callers. Runtime metadata does not
+`pyproject.toml` is the canonical development dependency definition. The runtime
+has no third-party dependencies, and `tests/requirements.txt` lists only the
+test-only tools. Runtime metadata does not
 raise the source/vendoring floor to the development floor. CI pins setup-python
 v7.0.0 and setup-uv v10.3.0 by full commit SHA, and uses uv 0.13.3. Setup actions
 using Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
