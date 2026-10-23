@@ -20,6 +20,15 @@ def test_sample_uses_real_renderer_and_escapes_html(tmp_path):
     assert "Request <&>" not in html
     assert '<pre class="ui-output">' in html
     assert capture.WEB_UI_BASE + "/css/themes/modern.css" in html
+    assert '<link rel="icon" type="image/png" href="./favicon.png">' in html
+    assert (tmp_path / "favicon.png").read_bytes() == (ROOT / "docs/brand/favicon.png").read_bytes()
+
+
+def test_generic_export_does_not_inherit_pages_branding():
+    html = capture.art.to_web_ui_v1_html("Consumer output", title="Consumer page")
+    assert 'rel="icon"' not in html
+    assert "docs/brand" not in html
+    assert "favicon.png" not in html
 
 
 @pytest.mark.parametrize("box", [None, {"x": 0, "y": 0, "width": 0, "height": 10},

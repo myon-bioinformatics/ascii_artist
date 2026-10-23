@@ -1,5 +1,11 @@
 # ascii_artist
 
+<p align="center">
+  <img src="docs/brand/icon.png" alt="ascii_artist icon" width="160" />
+</p>
+
+[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)
+
 **Python compatibility:** CI-tested on Python 3.10–3.14.
 
 Documentation-only changes use the shared change detector and skip the multi-version Python test matrix; code and workflow changes still run the full matrix.

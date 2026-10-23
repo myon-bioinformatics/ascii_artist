@@ -67,12 +67,20 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
             diagnostics, "build_record", return_value=record
         ):
-            out = Path(tmp)
+            out = Path(tmp) / "site"
             payload = diagnostics.write_outputs(out, probe=False)
             self.assertEqual(payload["resolver"]["status"], "not_checked")
             self.assertEqual(json.loads((out / diagnostics.JSONL_NAME).read_text(encoding="utf-8")), record)
             self.assertEqual(json.loads((out / diagnostics.JSON_NAME).read_text(encoding="utf-8"))["metadata"], record)
-            self.assertTrue((out / diagnostics.HTML_NAME).is_file())
+            html = (out / diagnostics.HTML_NAME).read_text(encoding="utf-8")
+            self.assertIn('<link rel="icon" type="image/png" href="./favicon.png">', html)
+            source = (ROOT / "docs/brand/favicon.png").read_bytes()
+            self.assertTrue(source.startswith(b"\x89PNG\r\n\x1a\n"))
+            self.assertEqual((out / "favicon.png").read_bytes(), source)
+            # Rebuilding replaces an old icon rather than preserving stale assets.
+            (out / "favicon.png").write_bytes(b"old icon")
+            diagnostics.write_outputs(out, probe=False)
+            self.assertEqual((out / "favicon.png").read_bytes(), source)
 
     def test_page_uses_pinned_renderer(self):
         html = diagnostics.page_html()

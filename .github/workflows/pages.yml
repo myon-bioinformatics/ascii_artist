@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "docs/brand/**"
       - "scripts/ascii_artist_repository_diagnostics.py"
       - "scripts/capture_pages.py"
       - "ascii_artist.py"
@@ -15,6 +16,7 @@ on:
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
+      - "docs/brand/**"
       - "scripts/ascii_artist_repository_diagnostics.py"
       - "scripts/capture_pages.py"
       - "ascii_artist.py"
