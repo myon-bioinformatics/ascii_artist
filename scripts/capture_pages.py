@@ -19,7 +19,7 @@ from threading import Thread
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import ascii_artist as art
-from scripts.ascii_artist_repository_diagnostics import WEB_UI_BASE
+from scripts.ascii_artist_repository_diagnostics import WEB_UI_BASE, write_favicon
 
 
 def sample_output() -> str:
@@ -27,10 +27,12 @@ def sample_output() -> str:
 
 
 def write_sample(site: Path) -> str:
+    write_favicon(site)
     output = sample_output()
     document = art.to_web_ui_v1_html(output, title="ASCII output evidence")
     links = "\n".join(f'<link rel="stylesheet" href="{WEB_UI_BASE}/css/{name}.css">'
                       for name in ("tokens", "base", "components", "themes/modern"))
+    links += '\n<link rel="icon" type="image/png" href="./favicon.png">'
     (site / "ascii-output.html").write_text(document.replace("</head>", links + "</head>"), encoding="utf-8")
     return output
 

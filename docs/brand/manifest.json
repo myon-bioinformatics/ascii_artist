@@ -1,0 +1,27 @@
+{
+  "source": "User-supplied project artwork sheet, 2026-10-23",
+  "source_dimensions": [
+    1536,
+    1024
+  ],
+  "coordinate_convention": "left, top, right-exclusive, bottom-exclusive",
+  "project": {
+    "label": "ascii_artist",
+    "icon": [
+      333,
+      70,
+      502,
+      239
+    ],
+    "favicon": [
+      515,
+      158,
+      580,
+      223
+    ],
+    "icon_sha256": "7ef3b9da477c45d35b64b2526751045e13d3c42950e3d37832b05f1fb6a457cf",
+    "icon_rgb_sha256": "b3bab81ec5b549136fef4185dfa09f00b73f40117ccf0a6f3c5b1dbb2b306a9e",
+    "favicon_sha256": "a7f3ac0d7ffe390f9c529b765936aa1b2c61898caee32d72be1da33569d3b3ef",
+    "favicon_rgb_sha256": "ceb1cb6b9c597eda905a715a2726775e5993e136a564c1f9d26f64725f297bd9"
+  }
+}

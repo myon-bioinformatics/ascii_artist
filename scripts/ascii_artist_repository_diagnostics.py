@@ -98,6 +98,7 @@ def page_html() -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>__REPO__ repository diagnostics</title>
+<link rel="icon" type="image/png" href="./favicon.png">
 <link rel="stylesheet" href="__BASE__/css/tokens.css">
 <link rel="stylesheet" href="__BASE__/css/base.css">
 <link rel="stylesheet" href="__BASE__/css/components.css">
@@ -145,8 +146,14 @@ def page_html() -> str:
     )
 
 
+def write_favicon(out_dir: Path) -> None:
+    """Copy repository branding for Pages, never for library exports."""
+    (out_dir / "favicon.png").write_bytes((ROOT / "docs/brand/favicon.png").read_bytes())
+
+
 def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
+    write_favicon(out_dir)
     record = build_record()
     payload = build_payload(record, probe=probe)
     (out_dir / JSON_NAME).write_text(
