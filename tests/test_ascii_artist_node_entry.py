@@ -49,7 +49,7 @@ def test_ci_executes_node_parity_instead_of_skipping():
     assert "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1" in job
     assert "node-version: '26'" in job
     assert "Require supported Node in parity CI" in job
-    locked = flow.split("\n  test-locked:\n", 1)[1].split("\n  ", 1)[0]
+    locked = flow.split("\n  test-locked:\n", 1)[1]
     assert "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1" in locked
     assert "node-version: '26'" in locked
     assert "Require supported Node in locked parity CI" in locked
