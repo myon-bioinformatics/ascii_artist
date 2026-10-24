@@ -53,7 +53,9 @@ def test_ci_executes_node_parity_instead_of_skipping():
     assert "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1" in locked
     assert "node-version: '26'" in locked
     assert "Require supported Node in locked parity CI" in locked
-    if os.environ.get("GITHUB_ACTIONS") == "true":
+    # Other runtime-compatibility workflows deliberately lack Node; both
+    # primary CI jobs (test and test-locked) provision Node 26 above.
+    if os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("GITHUB_JOB") in {"test", "test-locked"}:
         assert NODE is not None, "Node 24+ is required in CI"
 
 
