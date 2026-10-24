@@ -99,6 +99,7 @@ def page_html() -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>__REPO__ repository diagnostics</title>
 <link rel="icon" type="image/png" href="./favicon.png">
+<link rel="apple-touch-icon" href="./icon.png">
 <link rel="stylesheet" href="__BASE__/css/tokens.css">
 <link rel="stylesheet" href="__BASE__/css/base.css">
 <link rel="stylesheet" href="__BASE__/css/components.css">
@@ -106,6 +107,7 @@ def page_html() -> str:
 <link rel="stylesheet" href="__BASE__/css/repository-diagnostics.css">
 </head>
 <body data-ui-theme="modern"><main class="ui-page">
+<img src="./icon.png" width="80" height="80" alt="__REPO__ icon">
 <h1 class="ui-title">__REPO__ repository diagnostics</h1>
 <p class="ui-muted">Canonical metadata plus anonymous public GitHub observations.</p>
 <div id="metadata"></div>
@@ -149,6 +151,7 @@ def page_html() -> str:
 def write_favicon(out_dir: Path) -> None:
     """Copy repository branding for Pages, never for library exports."""
     (out_dir / "favicon.png").write_bytes((ROOT / "docs/brand/favicon.png").read_bytes())
+    (out_dir / "icon.png").write_bytes((ROOT / "docs/brand/icon.png").read_bytes())
 
 
 def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:

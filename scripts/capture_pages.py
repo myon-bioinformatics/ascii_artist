@@ -33,7 +33,8 @@ def write_sample(site: Path) -> str:
     links = "\n".join(f'<link rel="stylesheet" href="{WEB_UI_BASE}/css/{name}.css">'
                       for name in ("tokens", "base", "components", "themes/modern"))
     links += '\n<link rel="icon" type="image/png" href="./favicon.png">'
-    (site / "ascii-output.html").write_text(document.replace("</head>", links + "</head>"), encoding="utf-8")
+    links += '\n<link rel="apple-touch-icon" href="./icon.png">'
+    (site / "ascii-output.html").write_text(document.replace("</head>", links + "</head>").replace('<h1', '<img src="./icon.png" width="80" height="80" alt="ascii_artist icon"><h1', 1), encoding="utf-8")
     return output
 
 
@@ -84,6 +85,9 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
             try:
                 base = f"http://127.0.0.1:{server.server_port}"
                 page.goto(base + "/ascii-output.html")
+                logo = page.locator('img[src="./icon.png"]')
+                expect(logo).to_be_visible()
+                assert logo.evaluate("el => el.complete && el.naturalWidth > 0"), "project icon did not decode"
                 output = page.locator("pre.ui-output")
                 expect(output).to_have_text(expected_output, use_inner_text=False)
                 assert output.text_content() == expected_output, "ASCII spacing/escaping changed"
@@ -93,6 +97,9 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
                 assert_in_view(output, page)
                 page.screenshot(path=results / "ascii-output.png", animations="disabled")
                 page.goto(base + "/repository-diagnostics.html")
+                logo = page.locator('img[src="./icon.png"]')
+                expect(logo).to_be_visible()
+                assert logo.evaluate("el => el.complete && el.naturalWidth > 0"), "project icon did not decode"
                 metadata = page.locator("#metadata")
                 expect(metadata).to_contain_text(canonical["repository"]["full_name"])
                 expect(metadata).to_contain_text(canonical["head"]["short_sha"])

@@ -21,6 +21,9 @@ def test_sample_uses_real_renderer_and_escapes_html(tmp_path):
     assert '<pre class="ui-output">' in html
     assert capture.WEB_UI_BASE + "/css/themes/modern.css" in html
     assert '<link rel="icon" type="image/png" href="./favicon.png">' in html
+    assert '<link rel="apple-touch-icon" href="./icon.png">' in html
+    assert 'src="./icon.png"' in html
+    assert (tmp_path / "icon.png").read_bytes() == (ROOT / "docs/brand/icon.png").read_bytes()
     assert (tmp_path / "favicon.png").read_bytes() == (ROOT / "docs/brand/favicon.png").read_bytes()
 
 
