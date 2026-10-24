@@ -202,6 +202,30 @@ branch context. Tracked-byte measurement, Python tooling, resolver evidence and
 Pages presentation remain local. Run `python -m unittest discover -s tests -v`
 after refresh. Artifact-header provenance is a separate contract.
 
+## Command line
+
+`python ascii_artist.py COMMAND ...` exposes the main helpers (stdlib `argparse`,
+no abbreviations). Text input comes from `FILE` or stdin (`-` or omitted); output
+goes to stdout.
+
+```text
+square SIZE | triangle HEIGHT | diamond HALF_HEIGHT   [--char TOKEN]
+box [FILE] [--padding N] [--style ascii|double|rounded|single]
+flow ITEM... | tree ROOT ITEM...                      [--charset unicode|ascii]
+template NAME | templates
+convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|render|inventory [--charset ...]
+```
+
+Exit codes: 0 success; 1 input file could not be read; 2 usage error or invalid
+input (one `ascii_artist.py: error:` line on stderr).
+
+## Node entry (Node 24+)
+
+`node ascii_artist.cjs <args>` runs `ascii_artist.py` through the vendored shared launcher
+`vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and the
+exit code are passed through unchanged; Python runs with `-S`. Set `ASCII_ARTIST_PYTHON` to pick
+the interpreter. Launcher failures (no Python 3.9+, spawn error, signal) exit 2.
+
 ## Vendoring
 
 Consumers may copy the single `ascii_artist.py` file into their own `vendor/` directory and pin the source revision without pulling additional runtime dependencies.
