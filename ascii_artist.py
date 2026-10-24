@@ -1063,6 +1063,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         elif args.command == "flow":
             text = flow(args.items, charset=args.charset)
         elif args.command == "tree":
+            if any(not item or "\n" in item or "\r" in item for item in args.items):
+                raise ValueError("tree items must be non-empty single-line strings")
             text = tree(args.root, {item: {} for item in args.items}, charset=args.charset)
         elif args.command == "template":
             text = get_template(args.name)

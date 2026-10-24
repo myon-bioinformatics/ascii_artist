@@ -152,3 +152,17 @@ def test_mutation_check_unmutated_passes(tmp_path):
 ])
 def test_mutation_of_real_file_fails_check(tmp_path, old, new):
     assert _check(tmp_path, old, new) != 0
+
+
+@pytest.mark.parametrize("item", ["", "a\nb", "a\rb", "a\r\nb"])
+@pytest.mark.parametrize("charset", ["unicode", "ascii"])
+def test_tree_rejects_invalid_items_without_partial_output(run, item, charset):
+    assert run(["tree", "Root", "valid", item, "--charset", charset]) == (
+        2, "", "ascii_artist.py: error: tree items must be non-empty single-line strings\n"
+    )
+
+
+def test_tree_keeps_spaces_and_unicode(run):
+    assert run(["tree", "根", "two words", "葉"]) == (
+        0, aa.tree("根", {"two words": {}, "葉": {}}) + "\n", ""
+    )

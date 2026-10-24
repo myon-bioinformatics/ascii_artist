@@ -16,6 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOL = "ascii_artist"
 ENV_VAR = "ASCII_ARTIST_PYTHON"
 CASES = [
+    *({"id": f"tree-invalid-{i}-{charset}",
+       "args": ["tree", "Root", "valid", item, "--charset", charset], "stdin": "", "rc": 2}
+      for i, item in enumerate(["", "a\nb", "a\rb", "a\r\nb"])
+      for charset in ["unicode", "ascii"]),
     {"id": "help", "args": ["--help"], "stdin": "", "rc": 0},
     {"id": "square", "args": ["square", "3", "--char", "ü"], "stdin": "", "rc": 0},
     {"id": "box-stdin", "args": ["box", "--style", "rounded"], "stdin": "こんにちは\nhi\n", "rc": 0},
