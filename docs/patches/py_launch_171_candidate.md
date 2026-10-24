@@ -1,31 +1,12 @@
-# Pending launcher rollout for PR #53
+# Python launcher signal fix adopted
 
-The production vendor lock remains at parent main `6f068b340310fe7e342ea89a53cafacd33ca63cc`.
-Parent PR #171 (`834e626906ddce34e97d37f0fec2509719f673cf`) is not merged.
-Follow its rollout boundary: accept parent main, propagate through Aoi's merged
-source lineage, then regenerate vendor bytes and lock using the accepted source.
-Do not update only the checked-in vendor file or merge #53 before that rollout.
+Parent PR #171 is merged at `1116d5c4f55d25af4d21cfe9b3c88f49d3a476fa`.
+The production `vendor/py_launch.cjs` and its vendor lock now use that exact commit, with no local source changes.
 
-`py_launch_171_candidate.patch` reproduces the complete launcher change from that
-parent candidate against the current vendored bytes (probe isolation plus repeated
-signal forwarding). It is for temporary validation, not a lock update.
+The adjacent candidate patch and standalone checker are historical reproduction artifacts for the old launcher. Do not apply the patch to the updated vendor file.
 
-Validate a temporary copy without changing the checked-in vendor:
+The production regression tests now run in `tests/test_ascii_artist_node_entry.py`: two acknowledged SIGINT deliveries followed by SIGTERM, text/JSON diagnostics, bounded process-group cleanup, and no-site interpreter discovery. Run:
 
 ```sh
-repo="$PWD"
-work=$(mktemp -d)
-mkdir -p "$work/vendor"
-cp vendor/py_launch.cjs "$work/vendor/py_launch.cjs"
-(cd "$work" && git apply "$repo/docs/patches/py_launch_171_candidate.patch")
-ASCII_SIGNAL_LAUNCHER="$work/vendor/py_launch.cjs" python -m pytest -q docs/patches/signal_candidate_check.py
+python3 -m pytest -q tests/test_ascii_artist_node_entry.py
 ```
-
-Alternatively apply the patch in a disposable checkout. The regression uses actual
-Node/Python processes and readiness/acknowledgement handshakes, sends SIGINT then
-SIGTERM to Node only, checks exit 2 and text/JSON ESIGNAL diagnostics, and kills
-the process group in cleanup. POSIX only. After the accepted rollout, move this
-regression into tests and use the locked launcher path directly.
-
-Validation on Linux, Node 24.19.0, Python 3.12: current launcher fails both cases
-with a bounded timeout; the parent candidate passes both cases.
