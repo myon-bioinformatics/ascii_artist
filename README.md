@@ -261,7 +261,7 @@ CSS remains consumer-owned, so `ascii_artist.py` keeps its single-file,
 standard-library-only runtime contract.
 
 
-The stdlib runtime is CI-tested on Python **3.10–3.14** (`runtime-compatibility`). The full pytest matrix runs on **3.11–3.14**, and the Pages build runs on 3.12. Python versions outside these tested sets are not part of the default CI guarantee.
+The stdlib runtime is CI-tested on Python **3.10–3.14** (`runtime-compatibility`). The full pytest matrix runs on **3.11–3.14**, and the Pages build runs on 3.15. Python versions outside these tested sets are not part of the default CI guarantee.
 
 
 ## Repository diagnostics
@@ -334,8 +334,8 @@ python -S -m unittest discover -s tests -p test_ascii_artist.py -v
 `pyproject.toml` is the canonical development dependency definition. The runtime
 has no third-party dependencies, and `tests/requirements.txt` lists only the
 test-only tools. Runtime metadata does not
-raise the source/vendoring floor to the development floor. CI pins setup-python
-v7.0.0 and setup-uv v10.3.3 by full commit SHA, and uses uv 0.13.3. Setup actions
+raise the source/vendoring floor to the development floor. CI pins setup-uv v10.3.3 by full commit SHA, gets Python from it
+(`actions/setup-python` is not used), and uses uv 0.13.3. Setup actions
 using Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
 
 CI also exercises the stdlib runtime floor and Python 3.14 on Windows and macOS.
