@@ -55,7 +55,7 @@ class CiPythonSetupTests(unittest.TestCase):
                     self.assertLess(setup, command.start(), "Python ran before setup-uv")
                     setup_inputs = block[setup:].split("\n", 7)[:6]
                     inputs = "\n".join(setup_inputs)
-                    self.assertIn('version: "0.13.3"', inputs)
+                    self.assertIn('version: "latest"', inputs)
                     self.assertIn(f'python-version: "{version}"', inputs)
                     self.assertIn("activate-environment: true", inputs)
                     self.assertIn("enable-cache: false", inputs)
