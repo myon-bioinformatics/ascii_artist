@@ -84,6 +84,13 @@ jobs:
           node-version: '26'
       - name: Require supported Node in parity CI
         run: node -e "if (+process.versions.node.split('.')[0] < 24) process.exit(1)"
+      - name: Install test dependencies
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.3"
+          python-version: "${{ matrix.python-version }}"
+          activate-environment: true
+          enable-cache: false
       - name: Fetch pinned shared vendor tool
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,13 +108,6 @@ jobs:
         run: python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
       - name: Verify enrolled GHI is stdlib-loadable
         run: python -S -c "import importlib.util; s=importlib.util.spec_from_file_location('enrolled_ghi','vendor/gh_identity.py'); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); assert hasattr(m,'capabilities')"
-      - name: Install test dependencies
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: "0.13.3"
-          python-version: "${{ matrix.python-version }}"
-          activate-environment: true
-          enable-cache: false
       - name: Sync locked development environment
         shell: bash
         run: |
@@ -208,6 +208,13 @@ jobs:
         node-version: '26'
     - name: Require supported Node in locked parity CI
       run: node -e "if (+process.versions.node.split('.')[0] < 24) process.exit(1)"
+    - name: Install test dependencies
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      with:
+        version: "0.13.3"
+        python-version: "${{ matrix.python-version }}"
+        activate-environment: true
+        enable-cache: false
     - name: Fetch pinned shared vendor tool
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -230,13 +237,6 @@ jobs:
         python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
     - name: Verify enrolled GHI is stdlib-loadable
       run: python -S -c "import importlib.util; s=importlib.util.spec_from_file_location('enrolled_ghi','vendor/gh_identity.py'); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); assert hasattr(m,'capabilities')"
-    - name: Install test dependencies
-      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-      with:
-        version: "0.13.3"
-        python-version: "${{ matrix.python-version }}"
-        activate-environment: true
-        enable-cache: false
     - name: Sync locked development environment
       shell: bash
       run: |
