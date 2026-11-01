@@ -40,11 +40,11 @@ def _node() -> str | None:
     except (OSError, subprocess.SubprocessError):
         return None
     match = re.match(r"v(\d+)", out.strip())
-    return node if match and int(match.group(1)) >= 24 else None
+    return node if match and int(match.group(1)) >= 26 else None
 
 
 NODE = _node()
-needs_node = pytest.mark.skipif(NODE is None, reason="Node 24+ not available")
+needs_node = pytest.mark.skipif(NODE is None, reason="Node 26+ not available")
 
 
 def test_ci_executes_node_parity_instead_of_skipping():
@@ -60,7 +60,7 @@ def test_ci_executes_node_parity_instead_of_skipping():
     # Other runtime-compatibility workflows deliberately lack Node; both
     # primary CI jobs (test and test-locked) provision Node 26 above.
     if os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("GITHUB_JOB") in {"test", "test-locked"}:
-        assert NODE is not None, "Node 24+ is required in CI"
+        assert NODE is not None, "Node 26+ is required in CI"
 
 
 
