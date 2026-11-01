@@ -139,7 +139,7 @@ jobs:
       - name: Test with JUnit
         env:
           PYTHONPATH: build/shared
-          ASCII_FAILURE_EVIDENCE: build/controlled-failure
+          FAILURE_EVIDENCE_DIR: build/controlled-failure
         run: |
           mkdir -p build/test-results
           python -m pytest -q --junitxml="build/test-results/pytest-${{ matrix.python-version }}.xml"
@@ -268,7 +268,7 @@ jobs:
     - name: Test with JUnit
       env:
         PYTHONPATH: build/shared
-        ASCII_FAILURE_EVIDENCE: build/controlled-failure
+        FAILURE_EVIDENCE_DIR: build/controlled-failure
       run: |
         mkdir -p build/test-results
         python -m pytest -q --junitxml="build/test-results/pytest-${{ matrix.python-version }}.xml"
