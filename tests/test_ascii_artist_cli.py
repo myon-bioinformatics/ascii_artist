@@ -113,7 +113,11 @@ def test_main_guard_subprocess():
 
 def test_public_api_unchanged():
     assert "main" not in aa.__all__
-    assert len(aa.__all__) == 33
+    # Existing exports remain; card-flow migration adds six explicit APIs.
+    original = {'from_dict', 'to_markdown_outline', 'to_adjacency', 'to_dot', 'UNSUPPORTED', 'to_edges', 'from_dot', 'to_web_ui_v1_html', 'to_mermaid', 'Node', 'Diagram', 'from_edges', 'from_mermaid', 'SUPPORTED', 'inventory', 'from_markdown_outline', 'render_diagram', 'generate_diamond', 'from_adjacency', 'diagram', 'to_dict', 'branch', 'render_prompt_ascii', 'flow', 'from_json', 'generate_triangle', 'to_json', 'generate_box', 'list_templates', 'get_template', 'Edge', 'generate_square', 'tree'}
+    additions = {"validate_flow", "flow_html", "flow_mermaid", "flow_document", "flow_css", "patch_flow"}
+    assert set(aa.__all__) == original | additions
+    assert len(aa.__all__) == len(original) + len(additions)
 
 
 CHECK = (
@@ -146,7 +150,7 @@ def test_mutation_check_unmutated_passes(tmp_path):
 @pytest.mark.parametrize("old,new", [
     ('if __name__ == "__main__":', 'if __name__ == "__nope__":'),
     ("        return sys.stdin.read()", "        return ''"),
-    ("        return 2\n    sys.stdout", "        return 0\n    sys.stdout"),
+    ("        return 2\n    output =", "        return 0\n    output ="),
     ('text.endswith("\\n") else text + "\\n"', 'text.endswith("\\n") else text'),
     ("parser.error(\"command required\")", "return 0"),
 ])

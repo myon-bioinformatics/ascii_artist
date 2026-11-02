@@ -38,6 +38,63 @@ def write_sample(site: Path) -> str:
     return output
 
 
+
+CARD_CAPTURES = tuple(f"flow-{theme}-{width}.png"
+                      for theme in ("github-like", "modern") for width in (320, 1280))
+
+
+def card_sample() -> dict:
+    """Exercise HTML escaping, empty notes and Unicode code-point boundaries."""
+    return {"title": '入力 <&> "Build"', "sources_label": "入力ソース",
+            "sources": [{"title": "😀" * 120, "note": ""},
+                        {"title": "Python <script>not executable</script>", "note": "入力"}],
+            "steps": [{"title": "検査", "note": "界" * 240}]}
+
+
+def write_card_samples(site: Path) -> dict:
+    spec = card_sample()
+    for theme in ("github-like", "modern"):
+        (site / f"flow-{theme}.html").write_text(art.flow_document(spec, theme=theme), encoding="utf-8")
+    return spec
+
+
+def capture_card_flows(page, base: str, results: Path, spec: dict) -> None:
+    """Actual Chromium checks; the browserless fixture tests cannot replace these."""
+    from playwright.sync_api import expect
+
+    for theme, background in (("github-like", "rgb(255, 255, 255)"),
+                              ("modern", "rgb(13, 17, 23)")):
+        for width in (320, 1280):
+            page.set_viewport_size({"width": width, "height": 900})
+            page.goto(base + f"/flow-{theme}.html")
+            expect(page.locator(".ui-flow-card")).to_have_count(3)
+            expect(page.locator(".ui-flow-card-note")).to_have_count(2)
+            expect(page.locator("script")).to_have_count(0)
+            assert page.locator(".ui-flow-caption").text_content() == spec["title"]
+            assert page.locator(".ui-flow-card-title").all_text_contents() == [
+                card["title"] for card in spec["sources"] + spec["steps"]]
+            assert page.locator(".ui-flow-step .ui-flow-card-note").text_content() == "界" * 240
+            style = page.locator("body").evaluate("el => getComputedStyle(el).backgroundColor")
+            assert style == background, (theme, style)
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "flow overflows viewport"
+            for box in page.locator(".ui-flow-card").all():
+                assert box.evaluate("el => getComputedStyle(el).boxSizing") == "border-box"
+            sources = page.locator(".ui-flow-source").evaluate_all(
+                "els => els.map(el => ({x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y}))")
+            if width == 320:
+                assert sources[0]["x"] == sources[1]["x"] and sources[1]["y"] > sources[0]["y"]
+            else:
+                assert sources[0]["y"] == sources[1]["y"] and sources[1]["x"] > sources[0]["x"]
+            page.screenshot(path=results / f"flow-{theme}-{width}.png", full_page=True, animations="disabled")
+    # The fragment is independently usable with the in-memory stylesheet.
+    page.set_content('<style>' + art.flow_css() + '</style>' + art.flow_html(spec))
+    expect(page.locator("figure.ui-flow")).to_have_count(1)
+    expect(page.locator("script, link")).to_have_count(0)
+    assert page.locator(".ui-flow-sources").evaluate("el => getComputedStyle(el).display") == "grid"
+    assert page.locator(".ui-flow-card-title").first.text_content() == "😀" * 120
+    page.set_viewport_size({"width": 1280, "height": 900})
+
+
 def assert_in_view(locator, page) -> None:
     locator.scroll_into_view_if_needed()
     box = locator.bounding_box()
@@ -60,6 +117,7 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
     assert canonical["head"]["sha"] == expected_sha, "canonical SHA differs from checkout"
     (results / "canonical.json").write_text(json.dumps(canonical, indent=2) + "\n", encoding="utf-8")
     expected_output = write_sample(site)
+    expected_cards = write_card_samples(site)
     server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(site)))
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -107,9 +165,11 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
                 expect(page.locator("#summary")).to_contain_text("Auth: anonymous")
                 assert_in_view(metadata, page)
                 page.screenshot(path=results / "repository-diagnostics.png", animations="disabled")
-                for filename in ("ascii-output.png", "repository-diagnostics.png"):
+                capture_card_flows(page, base, results, expected_cards)
+                for filename in ("ascii-output.png", "repository-diagnostics.png", *CARD_CAPTURES):
                     data = (results / filename).read_bytes()
-                    receipt["captures"].append({"file": filename, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+                    viewport = {"width": int(filename.rsplit("-", 1)[1].split(".")[0]), "height": 900} if filename in CARD_CAPTURES else receipt["viewport"]
+                    receipt["captures"].append({"file": filename, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(), "viewport": viewport})
                 receipt["stage"] = "complete"
             except Exception as exc:
                 receipt["stage"] = "failed"
