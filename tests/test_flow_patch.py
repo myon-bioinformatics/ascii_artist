@@ -50,9 +50,9 @@ class FlowPatchTests(unittest.TestCase):
         data = {"spec": SPEC, "patch": [{"path": "/steps/1/note", "value": "CI完了"}]}
         input_text = json.dumps(data, ensure_ascii=False)
         py = subprocess.run([sys.executable, "-S", "ascii_artist.py", "flow-patch"], input=input_text,
-                            text=True, capture_output=True, cwd=ROOT)
+                            text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
         node = subprocess.run([NODE, "ascii_artist.cjs", "flow-patch"], input=input_text,
-                              text=True, capture_output=True, cwd=ROOT)
+                              text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
         self.assertEqual(py.returncode, 0, py.stderr)
         self.assertEqual(node.returncode, 0, node.stderr)
         self.assertEqual(json.loads(py.stdout), json.loads(node.stdout))

@@ -1276,7 +1276,12 @@ def main(argv: Iterable[str] | None = None) -> int:
     except (ValueError, TypeError, KeyError) as exc:
         print(f"ascii_artist.py: error: {exc}", file=sys.stderr)
         return 2
-    sys.stdout.write(text if not text or text.endswith("\n") else text + "\n")
+    output = text if not text or text.endswith("\n") else text + "\n"
+    if args.command in ("flow-cards", "flow-patch") and hasattr(sys.stdout, "buffer"):
+        # Card-flow JSON/HTML is UTF-8 even when redirected Windows stdout is not.
+        sys.stdout.buffer.write(output.encode("utf-8"))
+    else:
+        sys.stdout.write(output)
     return 0
 
 

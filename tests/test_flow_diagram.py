@@ -51,7 +51,7 @@ class FlowDiagramTests(unittest.TestCase):
 
     def test_cli_mermaid(self):
         run = subprocess.run([sys.executable, "-S", "ascii_artist.py", "flow-cards", "--format", "mermaid"],
-                             input=json.dumps(SAMPLE), text=True, capture_output=True, cwd=ROOT)
+                             input=json.dumps(SAMPLE), text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertTrue(run.stdout.startswith("```mermaid\nflowchart TB\n"))
         self.assertIn("T0 --> T1", run.stdout)

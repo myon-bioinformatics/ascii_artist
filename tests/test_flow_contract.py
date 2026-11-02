@@ -13,7 +13,7 @@ from ascii_artist import (FLOW_MAX_INPUT, FLOW_MAX_PATCH, flow_css, flow_documen
                           flow_html, flow_mermaid, from_dict, patch_flow, validate_flow)
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = json.loads((ROOT / 'examples/pr-flow.json').read_text())
+SPEC = json.loads((ROOT / 'examples/pr-flow.json').read_text(encoding="utf-8"))
 
 
 class CardFlowContractTests(unittest.TestCase):
@@ -107,3 +107,13 @@ class CardFlowContractTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertEqual(result.stdout, b'')
                 self.assertNotIn(b'Traceback', result.stderr)
+
+    def test_flow_cli_utf8_independent_of_stdout_locale(self):
+        env = dict(os.environ, PYTHONIOENCODING="cp1252", ASCII_ARTIST_PYTHON=sys.executable)
+        for command, document in (("flow-cards", SPEC), ("flow-patch", {"spec": SPEC, "patch": []})):
+            for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([[NODE, 'ascii_artist.cjs']] if NODE else [])):
+                result = subprocess.run([*runner, command], input=json.dumps(document).encode("utf-8"),
+                                        capture_output=True, cwd=ROOT, env=env)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                expected = flow_document(SPEC) if command == "flow-cards" else json.dumps(validate_flow(SPEC), ensure_ascii=False) + "\n"
+                self.assertEqual(result.stdout, expected.encode("utf-8"))

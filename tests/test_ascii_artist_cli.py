@@ -150,7 +150,7 @@ def test_mutation_check_unmutated_passes(tmp_path):
 @pytest.mark.parametrize("old,new", [
     ('if __name__ == "__main__":', 'if __name__ == "__nope__":'),
     ("        return sys.stdin.read()", "        return ''"),
-    ("        return 2\n    sys.stdout", "        return 0\n    sys.stdout"),
+    ("        return 2\n    output =", "        return 0\n    output ="),
     ('text.endswith("\\n") else text + "\\n"', 'text.endswith("\\n") else text'),
     ("parser.error(\"command required\")", "return 0"),
 ])
