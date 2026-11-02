@@ -93,7 +93,7 @@ jobs:
           mkdir -p _site
           python scripts/ascii_artist_repository_diagnostics.py _site
           cp _site/repository-diagnostics.html _site/index.html
-      - name: Assert ASCII output and diagnostics, then capture
+      - name: Assert ASCII, card flows and diagnostics, then capture
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python scripts/capture_pages.py --web-ui .web-ui --sha "$EXPECTED_SHA"
@@ -102,7 +102,7 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           python3 -S .browser-test-kit/scripts/check_capture_evidence.py test-results/pages \
-            --expect chromium --captures ascii-output.png,repository-diagnostics.png \
+            --expect chromium --captures ascii-output.png,repository-diagnostics.png,flow-github-like-320.png,flow-github-like-1280.png,flow-modern-320.png,flow-modern-1280.png \
             --sha "$EXPECTED_SHA" --canonical test-results/pages/canonical.json \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT"
       - name: Preserve all available Pages evidence
@@ -124,8 +124,8 @@ jobs:
         run: |
           {
             echo "### ASCII and diagnostics screenshot evidence: $JOB_STATUS"
-            echo "Chromium desktop: content/viewport assertions, two captures, shared PNG/hash/canonical/run validation."
-            echo "Firefox/WebKit/mobile unmeasured; no pixel regression baseline."
+            echo "Chromium: ASCII and diagnostics plus light/dark card flows at 320/1280px, six captures, shared PNG/hash/canonical/run validation."
+            echo "Firefox/WebKit and real mobile devices unmeasured; Chromium narrow viewport covered; no pixel regression baseline."
             echo "Failed/partial receipts do not count as success. Evidence (14 days): $ARTIFACT_URL"
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

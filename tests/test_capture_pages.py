@@ -48,3 +48,26 @@ def test_complete_box_in_view():
     locator = SimpleNamespace(scroll_into_view_if_needed=lambda: None,
                              bounding_box=lambda: {"x": 0, "y": 0, "width": 1280, "height": 900})
     capture.assert_in_view(locator, SimpleNamespace(viewport_size={"width": 1280, "height": 900}))
+
+
+def test_card_samples_use_canonical_renderer_and_preserve_boundaries(tmp_path):
+    data = capture.write_card_samples(tmp_path)
+    assert len(data["sources"][0]["title"]) == 120
+    assert data["sources"][0]["note"] == ""
+    assert len(data["steps"][0]["note"]) == 240
+    for theme in ("github-like", "modern"):
+        document = (tmp_path / f"flow-{theme}.html").read_text(encoding="utf-8")
+        assert document == capture.art.flow_document(data, theme=theme)
+        assert '<script>' not in document and '<link ' not in document
+        assert '&lt;script&gt;not executable&lt;/script&gt;' in document
+        assert '<style>' in document
+    assert len(capture.CARD_CAPTURES) == 4
+
+
+def test_pages_lane_requires_original_and_card_evidence():
+    workflow = (ROOT / ".github/workflows/pages.yml").read_text()
+    captures = 'ascii-output.png,repository-diagnostics.png,' + ','.join(capture.CARD_CAPTURES)
+    assert '--captures ' + captures in workflow
+    assert 'python scripts/capture_pages.py' in workflow
+    # Both push and PR path filters must execute the changed browser helper.
+    assert workflow.count('- "scripts/capture_pages.py"') == 2
