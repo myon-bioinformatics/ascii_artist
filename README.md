@@ -219,7 +219,7 @@ convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|ren
 Exit codes: 0 success; 1 input file could not be read; 2 usage error or invalid
 input (one `ascii_artist.py: error:` line on stderr).
 
-## Node entry (Node 24+)
+## Node entry (Node 26+)
 
 `node ascii_artist.cjs <args>` runs `ascii_artist.py` through the vendored shared launcher
 `vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and the

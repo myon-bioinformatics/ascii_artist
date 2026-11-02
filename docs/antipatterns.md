@@ -87,7 +87,7 @@ as soon as computed, into the separate `controlled-failure-py*` Actions artifact
 canonical pin and exact expected reports are unchanged. Raw XML is never sent
 to Pages. Public repo artifacts can be downloaded by signed-in users; this
 controlled fixture contains only dummy sentinels. Commit identity remains null.
-For a local evidence run, set `ASCII_FAILURE_EVIDENCE` to a new directory:
+For a local evidence run, set `FAILURE_EVIDENCE_DIR` to a new directory:
 existing destinations are rejected to avoid stale evidence.
 
 Generic native/JUnit classification and receipt edge cases remain upstream in
