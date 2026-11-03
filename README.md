@@ -199,7 +199,7 @@ blob SHA and SHA-256 provenance in `vendor/`. Refresh the pair from the same
 explicit commit and update its provenance together; never refresh from moving
 `main`. Checkout HEAD owns commit identity; GitHub ref variables only provide
 branch context. Tracked-byte measurement, Python tooling, resolver evidence and
-Pages presentation remain local. Run `python -m unittest discover -s tests -v`
+Pages presentation remain local. Run `python -S -m unittest discover -s tests -p test_ascii_artist_repository_diagnostics.py -v`
 after refresh. Artifact-header provenance is a separate contract.
 
 ## Command line
@@ -348,3 +348,9 @@ Render bounded source/step cards, standalone HTML/CSS and fenced Mermaid, or
 apply atomic field patches, using the single stdlib Python source. The existing
 Node launcher forwards `flow-cards` and `flow-patch`; no parallel JS engine is
 needed. See [card-flow API, migration and tests](docs/card-flows.md).
+
+## Focused test discovery
+
+See [standard-library discovery commands](docs/unittest-discovery.md) for
+validated `python -S -m unittest discover` recipes, filename/name filtering,
+and the boundary with the full pytest suite.
