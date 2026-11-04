@@ -1,5 +1,4 @@
 """Compare against the recorded git baseline; emits raw timings and parity."""
-import importlib.util
 import json
 from pathlib import Path
 import statistics
@@ -35,7 +34,11 @@ def main():
                     start = time.perf_counter_ns()
                     result = module._topological_layers(values[name])
                     elapsed = time.perf_counter_ns() - start
-                    assert result == expected
+                    if result != expected:
+                        raise SystemExit(
+                            f"DAG layering parity mismatch: {name}, nodes={size}, "
+                            f"shape={shape}, repetition={repetition}"
+                        )
                     if repetition:
                         samples[name].append(elapsed)
             records.append({'nodes':size, 'shape':shape, 'samples_ns':samples,
