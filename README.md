@@ -6,7 +6,7 @@
 
 [Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)
 
-**Python compatibility:** CI-tested on Python 3.10–3.14.
+**Python compatibility:** supports Python 3.11+, declared in `pyproject.toml`; CI tests Python 3.11–3.14.
 
 Documentation-only changes use the shared change detector and skip the multi-version Python test matrix; code and workflow changes still run the full matrix.
 Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows.
@@ -224,7 +224,9 @@ input (one `ascii_artist.py: error:` line on stderr).
 `node ascii_artist.cjs <args>` runs `ascii_artist.py` through the vendored shared launcher
 `vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and the
 exit code are passed through unchanged; Python runs with `-S`. Set `ASCII_ARTIST_PYTHON` to pick
-the interpreter. Launcher failures (no Python 3.9+, spawn error, signal) exit 2.
+a Python 3.11+ interpreter for supported use. The pinned launcher still probes
+for Python 3.9+; that discovery threshold is not this tool's support policy.
+Launcher failures (no Python 3.9+, spawn error, signal) exit 2.
 
 ## Vendoring
 
@@ -261,7 +263,7 @@ CSS remains consumer-owned, so `ascii_artist.py` keeps its single-file,
 standard-library-only runtime contract.
 
 
-The stdlib runtime is CI-tested on Python **3.10–3.14** (`runtime-compatibility`). The full pytest matrix runs on **3.11–3.14**, and the Pages build runs on 3.15. Python versions outside these tested sets are not part of the default CI guarantee.
+The stdlib runtime is CI-tested on Python **3.11–3.14** (`runtime-compatibility`). The full pytest matrix runs on **3.11–3.14**, and the Pages build runs on 3.15. Python versions outside these tested sets are not part of the default CI guarantee.
 
 
 ## Repository diagnostics
@@ -320,8 +322,10 @@ Public source placement and automatic Python CI updates: [vendor automation](doc
 
 ## Runtime and development Python policy
 
-The standard-library runtime supports Python 3.10+; this change preserves the
-existing runtime floor. The separate `runtime-compatibility` CI lane executes
+The standard-library runtime, including standalone and vendored copies, supports
+Python 3.11+. This is the supported/tested floor, not a claim that older
+interpreters cannot execute any part of the module. The separate
+`runtime-compatibility` CI lane executes
 behavior tests with `python -S`, without installing pytest or any third-party
 package. Development/test environments use Python 3.11+ and a committed uv lock:
 
@@ -331,10 +335,15 @@ uv run --locked python -m pytest
 python -S -m unittest discover -s tests -p test_ascii_artist.py -v
 ```
 
-`pyproject.toml` is the canonical development dependency definition. The runtime
-has no third-party dependencies, and `tests/requirements.txt` lists only the
-test-only tools. Runtime metadata does not
-raise the source/vendoring floor to the development floor. CI pins setup-uv v10.3.3 by full commit SHA, gets Python from it
+`pyproject.toml` is the canonical Python requirement and development dependency
+definition: `project.requires-python = ">=3.11"` applies to source runtime support
+as well as development. The runtime has no third-party dependencies, and
+`tests/requirements.txt` lists only the test-only tools. A copied `.py` file does
+not read project metadata; consumers must select Python 3.11+ themselves. This
+policy does not update consumers' vendored files or interpreter settings. The
+shared Node launcher and its vendor pin remain unchanged.
+
+CI pins setup-uv v10.3.3 by full commit SHA, gets Python from it
 (`actions/setup-python` is not used), and uses the latest uv. Setup actions
 using Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
 
