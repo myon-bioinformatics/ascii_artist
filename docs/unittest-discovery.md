@@ -1,0 +1,41 @@
+# Focused standard-library test discovery
+
+Run from this repository root with Python 3.10 or newer. These commands use
+Python’s built-in test runner; the listed checks need no third-party Python
+package or browser installation. `-S` disables automatic `site` initialization
+and its usual site-packages path additions; it is not a complete isolation boundary.
+
+The stdlib runtime floor above is separate from the Python 3.11+
+uv/pytest development environment. The validation below covers CPython 3.12.14,
+not every supported Python version.
+
+Node adapter checks are optional: tests skip the dedicated Node parity case
+when Node.js 26+ is unavailable and omit Node branches in mixed cases. A Python
+pass alone does not establish Node parity.
+
+```sh
+python -S -m unittest discover -s tests -p 'test_flow_*.py' -v
+```
+
+Validated on Linux / CPython 3.12.14: **19 tests, exit 0** (2026-11-03).
+
+To narrow the first command to a test name, use the built-in `-k` filter
+(available since Python 3.7, including all versions supported here):
+
+```sh
+python -S -m unittest discover -s tests -p 'test_flow_*.py' -v -k test_mermaid_fan_in_and_all_steps
+```
+
+`-s` is the discovery start directory, `-p` matches test filenames, `-k`
+filters test names, `-v` prints each executed test, and `-f` stops at the first
+failure. Quote filename patterns so the shell does not expand them. Check the
+final `Ran N tests` line: zero tests is not a successful verification, even
+though unittest can exit 0. `-k` runs selected tests; it is not a list-only mode.
+
+These are focused checks, not the complete project suite. Keep the existing
+pytest/CI command for full coverage and native JUnit or fixture support.
+Unittest does not collect module-level pytest functions or apply pytest
+fixtures, parametrization, markers, conftest hooks or configured pythonpath.
+A broad `test*.py` pattern can import pytest-only modules and fail under `-S`.
+Do not add an extra CI pass over tests already owned by pytest just to expose
+this local command. No custom discovery runner is required.
