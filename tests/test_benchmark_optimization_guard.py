@@ -22,5 +22,6 @@ ns['main']()
         result = subprocess.run([sys.executable, '-O', '-S', '-c', code],
                                 cwd=ROOT, capture_output=True, text=True, timeout=30)
         self.assertNotEqual(result.returncode, 0, result.stdout)
-        self.assertIn('layer mismatch', result.stderr)
+        self.assertIn('parity mismatch', result.stderr)
         self.assertEqual(result.stdout, '')
+
