@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import re
+import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,36 @@ def job(workflow, name):
 
 
 class CiPythonSetupTests(unittest.TestCase):
+    def test_project_and_lock_declare_python311_without_runtime_dependencies(self):
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+        self.assertEqual(project["project"]["requires-python"], ">=3.11")
+        self.assertEqual(lock["requires-python"], project["project"]["requires-python"])
+        self.assertEqual(project["project"]["dependencies"], [])
+        self.assertFalse(project["tool"]["uv"]["package"])
+        self.assertEqual(project["tool"]["uv"]["dependency-groups"]["dev"]["requires-python"], ">=3.11")
+
+    def test_supported_runtime_versions_keep_existing_os_coverage(self):
+        block = job("runtime-compatibility.yml", "runtime")
+        matrix = re.search(r"(?ms)^      matrix:\n(.*?)(?=^    steps:)", block)
+        self.assertIsNotNone(matrix)
+        self.assertEqual(matrix.group(1), '''        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: windows-latest
+            python: "3.11"
+          - os: windows-latest
+            python: "3.14"
+          - os: macos-latest
+            python: "3.11"
+          - os: macos-latest
+            python: "3.14"
+''')
+        self.assertIn("runs-on: ${{ matrix.os }}", block)
+        self.assertIn("fail-fast: false", block)
+        self.assertIn("python -S -m unittest discover -s tests -p test_ascii_artist.py -v", block)
+        self.assertNotIn("continue-on-error", block)
+
     def test_selected_python_is_ready_before_any_python_or_uv_command(self):
         for workflow, jobs in JOBS.items():
             for name, version in jobs.items():

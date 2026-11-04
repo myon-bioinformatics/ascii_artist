@@ -1,12 +1,13 @@
 # Focused standard-library test discovery
 
-Run from this repository root with Python 3.10 or newer. These commands use
+Run from this repository root with Python 3.11 or newer. These commands use
 Python’s built-in test runner; the listed checks need no third-party Python
 package or browser installation. `-S` disables automatic `site` initialization
 and its usual site-packages path additions; it is not a complete isolation boundary.
 
-The stdlib runtime floor above is separate from the Python 3.11+
-uv/pytest development environment. The validation below covers CPython 3.12.14,
+The stdlib runtime and uv/pytest development environment share the Python 3.11+
+floor declared in `pyproject.toml`, while runtime dependencies remain separate
+from test-only tools. The validation below covers CPython 3.12.14,
 not every supported Python version.
 
 Node adapter checks are optional: tests skip the dedicated Node parity case
