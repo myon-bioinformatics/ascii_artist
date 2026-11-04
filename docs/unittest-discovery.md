@@ -14,7 +14,7 @@ when Node.js 26+ is unavailable and omit Node branches in mixed cases. A Python
 pass alone does not establish Node parity.
 
 ```sh
-python -S -m unittest discover -s tests -p 'test_flow_*.py' -v
+python -S -m unittest discover -s tests -p "test_flow_*.py" -v
 ```
 
 Validated on Linux / CPython 3.12.14: **19 tests, exit 0** (2026-11-03).
@@ -23,7 +23,7 @@ To narrow the first command to a test name, use the built-in `-k` filter
 (available since Python 3.7, including all versions supported here):
 
 ```sh
-python -S -m unittest discover -s tests -p 'test_flow_*.py' -v -k test_mermaid_fan_in_and_all_steps
+python -S -m unittest discover -s tests -p "test_flow_*.py" -v -k test_mermaid_fan_in_and_all_steps
 ```
 
 `-s` is the discovery start directory, `-p` matches test filenames, `-k`
