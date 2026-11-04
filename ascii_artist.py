@@ -49,6 +49,7 @@ import json
 import re
 import sys
 import unicodedata
+from collections import deque
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
@@ -171,10 +172,10 @@ def _validate_dag(value: Diagram) -> None:
         indegree[edge.target] += 1
         outgoing[edge.source].append(edge.target)
 
-    ready = [node_id for node_id in node_ids if indegree[node_id] == 0]
+    ready = deque(node_id for node_id in node_ids if indegree[node_id] == 0)
     visited = 0
     while ready:
-        current = ready.pop(0)
+        current = ready.popleft()
         visited += 1
         for target in outgoing[current]:
             indegree[target] -= 1
@@ -193,17 +194,19 @@ def _topological_layers(value: Diagram) -> list[list[str]]:
         indegree[edge.target] += 1
         outgoing[edge.source].append(edge.target)
 
-    remaining = set(node_ids)
+    rank = {node_id: index for index, node_id in enumerate(node_ids)}
+    layer = [node_id for node_id in node_ids if indegree[node_id] == 0]
     layers: list[list[str]] = []
-    while remaining:
-        layer = [node_id for node_id in node_ids if node_id in remaining and indegree[node_id] == 0]
-        if not layer:
-            raise ValueError("diagram must be acyclic")
+    while layer:
         layers.append(layer)
+        following = []
         for source in layer:
-            remaining.remove(source)
             for target in outgoing[source]:
                 indegree[target] -= 1
+                if indegree[target] == 0:
+                    following.append(target)
+        # Edge traversal order can differ from input node order.
+        layer = sorted(following, key=rank.__getitem__)
     return layers
 
 
