@@ -242,7 +242,7 @@ Planned improvements include richer conversion and layout helpers and text-based
 ## Web UI contract v1
 
 `to_web_ui_v1_html()` renders either a `Diagram` or plain text art into the
-stable semantic surface defined by [`myon-bioinformatics/web-ui/contract/v1`](https://github.com/myon-bioinformatics/web-ui/tree/4f43617465a92c912efcd441208e1789b3508d32/contract/v1) (pinned reference: `4f436174`).
+stable semantic surface defined by [`myon-bioinformatics/PySaiyanWeBoo/contract/v1`](https://github.com/myon-bioinformatics/PySaiyanWeBoo/tree/4f43617465a92c912efcd441208e1789b3508d32/contract/v1) (pinned reference: `4f436174`).
 
 The emitted document uses:
 
@@ -272,7 +272,7 @@ GitHub Pages publishes the shared repository metadata contract as
 `repository-diagnostics.json`, a one-record `repository-diagnostics.jsonl`,
 and `repository-diagnostics.html`. The metadata contract is pinned from
 Ironmate, anonymous public GitHub observations are pinned from
-mcp-toolcall-lab, and the HTML renderer is pinned to web-ui commit
+mcp-toolcall-lab, and the HTML renderer is pinned to PySaiyanWeBoo commit
 `adb23d7`. Network failures remain `unverified`; no GitHub token is used
 by the public resolver.
 
@@ -305,10 +305,10 @@ The Pages build now renders actual `branch()` and `get_template()` output throug
 The Chromium desktop lane asserts exact preformatted output, viewport bounds,
 computed dark-text/grey-background colors, and canonical repository/commit/time in the existing diagnostics page before
 capturing `ascii-output.png` and `repository-diagnostics.png`. Shared CSS/JS are
-served from a separately pinned web-ui checkout, so capture does not depend on a CDN.
+served from a separately pinned PySaiyanWeBoo checkout, so capture does not depend on a CDN.
 
 The multi-image receipt records stage, checkout SHA, canonical timestamps, hashes,
-browser/version, viewport and CI run/attempt. browser-test-kit is pinned to
+browser/version, viewport and CI run/attempt. BrowserTestKit is pinned to
 `3a054c777a98300ee272e4458990b849c32a7ef0`; its
 `check_capture_evidence.py` requires both images and verifies PNG structure,
 bytes/hashes, canonical identity and current run. Application assertions stay here;
@@ -316,7 +316,7 @@ no dependency is added to the stdlib single-file runtime. Failure/partial receip
 do not count as success. Available screenshots, receipts, canonical JSON and trace
 upload even after failure (14 days), with an artifact link in the job summary.
 Firefox/WebKit/mobile and pixel regression are unmeasured; no intentional capture skips.
-See the [shared guide](https://github.com/myon-bioinformatics/browser-test-kit/blob/3a054c777a98300ee272e4458990b849c32a7ef0/docs/screenshot-evidence.md).
+See the [shared guide](https://github.com/myon-bioinformatics/BrowserTestKit/blob/3a054c777a98300ee272e4458990b849c32a7ef0/docs/screenshot-evidence.md).
 
 Public source placement and automatic Python CI updates: [vendor automation](docs/vendor-automation.md).
 
