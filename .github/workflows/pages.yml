@@ -64,17 +64,17 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Check out pinned browser-test-kit validators
+      - name: Check out pinned BrowserTestKit validators
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: myon-bioinformatics/browser-test-kit
+          repository: myon-bioinformatics/BrowserTestKit
           ref: 3a054c777a98300ee272e4458990b849c32a7ef0
           path: .browser-test-kit
           persist-credentials: false
-      - name: Check out pinned shared web-ui assets
+      - name: Check out pinned shared PySaiyanWeBoo assets
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: myon-bioinformatics/web-ui
+          repository: myon-bioinformatics/PySaiyanWeBoo
           ref: 34129d546c39ca961b12e926b944cc1b7f37f5e3
           path: .web-ui
           persist-credentials: false
