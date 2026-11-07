@@ -5,16 +5,8 @@ Shared web-ui assets are served from a separately pinned checkout for offline CI
 """
 from __future__ import annotations
 
-import argparse
-from functools import partial
-import hashlib
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-import json
-import os
-from pathlib import Path
-import shutil
-import sys
-from threading import Thread
+import argparse, hashlib, json, os, shutil, sys
+from functools import partial; from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer; from pathlib import Path; from threading import Thread
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))

@@ -1,14 +1,5 @@
-import hashlib
-import json
-import os
-import platform
-import shutil
-import subprocess
-import sys
-import tempfile
-import unittest
-from pathlib import Path
-from unittest import mock
+import hashlib, json, os, platform, shutil, subprocess, sys, tempfile, unittest
+from pathlib import Path; from unittest import mock
 
 from scripts import ascii_artist_repository_diagnostics as diagnostics
 

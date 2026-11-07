@@ -1,8 +1,5 @@
-import json
+import json, subprocess, sys, unittest
 from pathlib import Path
-import subprocess
-import sys
-import unittest
 from flow_test_support import NODE, node_command
 
 from ascii_artist import validate_flow as canonical, patch_flow

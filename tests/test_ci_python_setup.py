@@ -1,9 +1,6 @@
 """Stdlib-only contracts for CI Python selection and preserved baselines."""
-import json
+import json, re, tomllib, unittest
 from pathlib import Path
-import re
-import tomllib
-import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SETUP_UV = "astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2"

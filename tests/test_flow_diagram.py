@@ -1,10 +1,6 @@
 """Flow diagram validation, HTML safety, CLI and output contracts."""
-import json
-from html.parser import HTMLParser
-from pathlib import Path
-import subprocess
-import sys
-import unittest
+import json, subprocess, sys, unittest
+from html.parser import HTMLParser; from pathlib import Path
 from ascii_artist import flow_document, flow_html, flow_mermaid, validate_flow as validate
 
 ROOT = Path(__file__).resolve().parents[1]

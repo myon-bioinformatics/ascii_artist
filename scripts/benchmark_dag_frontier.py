@@ -1,11 +1,6 @@
 """Compare against the recorded git baseline; emits raw timings and parity."""
-import json
+import json, statistics, subprocess, sys, time, types
 from pathlib import Path
-import statistics
-import subprocess
-import sys
-import time
-import types
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))

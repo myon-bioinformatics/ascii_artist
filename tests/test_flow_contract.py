@@ -1,12 +1,6 @@
 """Additional migrated Node contracts and standalone single-file regressions."""
-import copy
-import json
-import os
+import copy, json, os, subprocess, sys, tempfile, unittest
 from pathlib import Path
-import subprocess
-import sys
-import tempfile
-import unittest
 from flow_test_support import NODE
 
 from ascii_artist import (FLOW_MAX_INPUT, FLOW_MAX_PATCH, flow_css, flow_document,

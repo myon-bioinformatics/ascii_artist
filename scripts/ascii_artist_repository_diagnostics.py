@@ -1,15 +1,8 @@
 """Build canonical repository diagnostics JSON/JSONL/HTML for Pages."""
 from __future__ import annotations
 
-from html import escape
-import importlib.util
-import json
-import os
-from pathlib import Path
-import platform
-import sys
-from types import ModuleType
-from typing import Any, Mapping
+import importlib.util, json, os, platform, sys
+from html import escape; from pathlib import Path; from types import ModuleType; from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "myon-bioinformatics/ascii_artist"
