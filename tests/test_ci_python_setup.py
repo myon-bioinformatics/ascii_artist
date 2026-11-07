@@ -84,12 +84,14 @@ class CiPythonSetupTests(unittest.TestCase):
                     )
                     self.assertIsNotNone(command, "No interpreter consumer was checked")
                     self.assertLess(setup, command.start(), "Python ran before setup-uv")
-                    setup_inputs = block[setup:].split("\n", 7)[:6]
+                    setup_inputs = block[setup:].split("\n", 10)[:9]
                     inputs = "\n".join(setup_inputs)
                     self.assertIn('version: "latest"', inputs)
                     self.assertIn(f'python-version: "{version}"', inputs)
                     self.assertIn("activate-environment: true", inputs)
-                    self.assertIn("enable-cache: false", inputs)
+                    self.assertIn("enable-cache: true", inputs)
+                    self.assertIn("save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}", inputs)  # only main writes
+                    self.assertIn("prune-cache: true", inputs)
 
     def test_compatibility_matrix_and_required_report_identities_are_preserved(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

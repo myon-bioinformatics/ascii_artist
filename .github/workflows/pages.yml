@@ -48,7 +48,10 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       - name: Install browserless test dependencies
         run: uv pip install 'pytest>=9.1.1'
       - name: Test screenshot scenarios
@@ -83,7 +86,10 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       - name: Install browser test dependencies
         run: |
           uv pip install 'playwright>=1.64.0'
