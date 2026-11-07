@@ -102,8 +102,9 @@ class CiPythonSetupTests(unittest.TestCase):
         locked = job("ci.yml", "vendor-locked")
         self.assertRegex(locked, r"python-version:\s*\n\s*- '3\.12'")
         self.assertIn("name: locked-junit-py${{ matrix.python-version }}", locked)
-        for name in ("checks", "build"):
-            self.assertIn("uv pip install ", job("pages.yml", name))
+        for name, group in (("checks", "dev"), ("build", "browser")):
+            self.assertIn(f"uv run --locked --only-group {group} ", job("pages.yml", name))
+            self.assertNotIn("uv pip install", job("pages.yml", name))
             self.assertNotIn("python -m pip", job("pages.yml", name))
         self.assertIn("if: github.ref == 'refs/heads/main'", job("pages.yml", "deploy"))
 

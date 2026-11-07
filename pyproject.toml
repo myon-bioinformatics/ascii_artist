@@ -6,6 +6,8 @@ dependencies = []
 
 [dependency-groups]
 dev = ["pytest>=9.1.1", "PyYAML>=6.0.3"]
+# Only the Pages capture job (browser) installs this; keep it out of the default sync.
+browser = ["playwright>=1.64.0"]
 
 # Vendored/source runtime has no dependencies. uv manages contributor tools only.
 [tool.uv]
