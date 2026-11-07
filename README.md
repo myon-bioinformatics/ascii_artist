@@ -326,7 +326,8 @@ The Pages build now renders actual `branch()` and `get_template()` output throug
 The Chromium desktop lane asserts exact preformatted output, viewport bounds,
 computed dark-text/grey-background colors, and canonical repository/commit/time in the existing diagnostics page before
 capturing `ascii-output.png` and `repository-diagnostics.png`. Shared CSS/JS are
-served from a separately pinned PySaiyanWeBoo checkout, so capture does not depend on a CDN.
+embedded from the PySaiyanWeBoo git dependency pinned in the `dev` group (the diagnostics
+page is `web_ui.repository_diagnostics_page`), so no page fetches anything from a CDN.
 
 The multi-image receipt records stage, checkout SHA, canonical timestamps, hashes,
 browser/version, viewport and CI run/attempt. BrowserTestKit is pinned to
