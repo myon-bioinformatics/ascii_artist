@@ -77,7 +77,7 @@ def test_ci_excludes_auto_vendor_updates_and_legacy_provenance():
     assert not any(x in text for x in ("secrets.", "VENDOR_UPDATE_TOKEN", "VENDOR_UPDATES_ENABLED", "GH_TOKEN"))
 
 
-@pytest.mark.parametrize("job", [TEST_JOB, "test-locked"])
+@pytest.mark.parametrize("job", [TEST_JOB, "vendor-locked"])
 def test_enrolled_ghi_loads_with_stdlib_after_verification(job):
     steps = _workflow()["jobs"][job]["steps"]
     load = next(
@@ -101,7 +101,7 @@ def test_enrolled_ghi_loads_with_stdlib_after_verification(job):
 
 def test_locked_baseline_runs_without_candidate_snapshot():
     ci = _workflow()
-    job = ci["jobs"]["test-locked"]
+    job = ci["jobs"]["vendor-locked"]
     assert job["permissions"] == {"contents": "read"}
     assert "continue-on-error" not in job
     assert job.get("needs") == ci["jobs"]["resolve-vendor"].get("needs")

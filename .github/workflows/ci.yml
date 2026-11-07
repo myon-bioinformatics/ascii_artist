@@ -188,7 +188,7 @@ jobs:
       artifact-pattern: "junit-py*"
       output-artifact: "failure-identity"
 
-  test-locked:
+  vendor-locked:
     permissions:
       contents: read
     needs: changes
@@ -302,5 +302,5 @@ jobs:
         path: build/vendor-evidence-locked
         if-no-files-found: error
         retention-days: 14
-    name: Locked baseline
+    name: Vendor locked baseline
     timeout-minutes: 20
