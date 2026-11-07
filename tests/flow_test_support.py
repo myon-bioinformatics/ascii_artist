@@ -20,5 +20,9 @@ def supported_node():
 NODE = supported_node()
 
 
+# The documented Node entry: the shared launcher called directly (no per-tool wrapper).
+NODE_ENTRY = [NODE, 'vendor/py_launch.cjs', '--env-var', 'ASCII_ARTIST_PYTHON', '--', 'ascii_artist.py'] if NODE else None
+
+
 def node_command(command):
-    return [[NODE, 'ascii_artist.cjs', command]] if NODE else []
+    return [[*NODE_ENTRY, command]] if NODE else []
