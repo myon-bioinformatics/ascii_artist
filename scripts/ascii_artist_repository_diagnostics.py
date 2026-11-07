@@ -1,7 +1,6 @@
 """Build canonical repository diagnostics JSON/JSONL/HTML for Pages."""
 from __future__ import annotations
 
-from html import escape
 import importlib.util
 import json
 import os
@@ -13,8 +12,6 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "myon-bioinformatics/ascii_artist"
-WEB_UI_SHA = "34129d546c39ca961b12e926b944cc1b7f37f5e3"
-WEB_UI_BASE = f"https://cdn.jsdelivr.net/gh/myon-bioinformatics/PySaiyanWeBoo@{WEB_UI_SHA}"
 JSON_NAME = "repository-diagnostics.json"
 JSONL_NAME = "repository-diagnostics.jsonl"
 HTML_NAME = "repository-diagnostics.html"
@@ -92,60 +89,10 @@ def build_payload(record: dict[str, Any], *, probe: bool = True) -> dict[str, An
 
 
 def page_html() -> str:
-    html = """<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>__REPO__ repository diagnostics</title>
-<link rel="icon" type="image/png" href="./favicon.png">
-<link rel="apple-touch-icon" href="./icon.png">
-<link rel="stylesheet" href="__BASE__/css/tokens.css">
-<link rel="stylesheet" href="__BASE__/css/base.css">
-<link rel="stylesheet" href="__BASE__/css/components.css">
-<link rel="stylesheet" href="__BASE__/css/themes/modern.css">
-<link rel="stylesheet" href="__BASE__/css/repository-diagnostics.css">
-</head>
-<body data-ui-theme="modern"><main class="ui-page">
-<img src="./icon.png" width="80" height="80" alt="__REPO__ icon">
-<h1 class="ui-title">__REPO__ repository diagnostics</h1>
-<p class="ui-muted">Canonical metadata plus anonymous public GitHub observations.</p>
-<div id="metadata"></div>
-<section class="ui-panel"><h2>Public URL observations</h2>
-<p id="summary" class="ui-muted">Loading…</p><div id="observations" class="ui-grid"></div></section>
-<p><a href="./repository-diagnostics.json">JSON</a> · <a href="./repository-diagnostics.jsonl">JSONL</a></p>
-</main>
-<script src="__BASE__/js/repository-diagnostics.js"></script>
-<script>
-(async function() {
-  const root=document.getElementById("metadata"), summary=document.getElementById("summary"),
-        observations=document.getElementById("observations");
-  try {
-    const response=await fetch("./repository-diagnostics.json",{cache:"no-store"});
-    if(!response.ok) throw new Error("fetch failed");
-    const payload=await response.json();
-    root.innerHTML=RepositoryDiagnostics.render(payload.metadata);
-    summary.textContent="Auth: "+(payload.resolver.auth||"unknown")+" · Status: "+(payload.resolver.status||"unknown");
-    observations.replaceChildren();
-    (payload.resolver.observations||[]).forEach(function(item){
-      const card=document.createElement("article"); card.className="ui-card";
-      const h=document.createElement("h3"); h.textContent=item.kind||"resource";
-      const s=document.createElement("p"); s.className="ui-tag"; s.textContent=item.status||"unknown";
-      const code=document.createElement("p"); code.className="ui-muted";
-      code.textContent=item.http_status==null?"HTTP: not observed":"HTTP: "+item.http_status;
-      const a=document.createElement("a"); a.href=item.url; a.target="_blank"; a.rel="noopener"; a.textContent=item.url;
-      card.append(h,s,code,a); observations.append(card);
-    });
-  } catch(error) {
-    summary.textContent="Diagnostics could not be loaded.";
-    observations.replaceChildren();
-  }
-})();
-</script></body></html>
-"""
-    return html.replace("__REPO__", escape(REPOSITORY, quote=True)).replace(
-        "__BASE__", escape(WEB_UI_BASE, quote=True)
-    )
+    """The shared diagnostics page from PySaiyanWeBoo (bundled CSS and renderer embedded, nothing from a CDN)."""
+    import web_ui  # the pinned git dependency in the dev group
+
+    return web_ui.repository_diagnostics_page(REPOSITORY)
 
 
 def write_favicon(out_dir: Path) -> None:

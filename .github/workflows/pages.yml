@@ -49,8 +49,11 @@ jobs:
           python-version: "3.15"
           activate-environment: true
           enable-cache: false
-      - name: Install browserless test dependencies
-        run: uv pip install 'pytest>=9.1.1'
+      - name: Sync locked development environment (pins PySaiyanWeBoo for the shared page)
+        shell: bash
+        run: |
+          uv sync --locked --group dev --python "$(python -c 'import sys; print(sys.executable)')"
+          python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
       - name: Test screenshot scenarios
         run: python -m pytest -q tests/test_capture_pages.py
       - name: Run diagnostics tests
@@ -71,23 +74,19 @@ jobs:
           ref: 3a054c777a98300ee272e4458990b849c32a7ef0
           path: .browser-test-kit
           persist-credentials: false
-      - name: Check out pinned shared PySaiyanWeBoo assets
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: myon-bioinformatics/PySaiyanWeBoo
-          ref: 34129d546c39ca961b12e926b944cc1b7f37f5e3
-          path: .web-ui
-          persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
           enable-cache: false
-      - name: Install browser test dependencies
+      - name: Install browser test dependencies (the dev group pins PySaiyanWeBoo for the shared CSS and page)
+        shell: bash
         run: |
-          uv pip install 'playwright>=1.64.0'
-          python -m playwright install --with-deps --only-shell chromium
+          uv sync --locked --group dev --python "$(python -c 'import sys; print(sys.executable)')"
+          python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
+          uv pip install --python .venv/bin/python 'playwright>=1.64.0'
+          .venv/bin/python -m playwright install --with-deps --only-shell chromium
       - name: Build Pages tree
         run: |
           mkdir -p _site
@@ -96,7 +95,7 @@ jobs:
       - name: Assert ASCII, card flows and diagnostics, then capture
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: python scripts/capture_pages.py --web-ui .web-ui --sha "$EXPECTED_SHA"
+        run: python scripts/capture_pages.py --sha "$EXPECTED_SHA"
       - name: Validate required images and canonical receipt
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}

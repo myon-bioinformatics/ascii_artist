@@ -19,7 +19,7 @@ def test_sample_uses_real_renderer_and_escapes_html(tmp_path):
     assert "Request &lt;&amp;&gt;" in html
     assert "Request <&>" not in html
     assert '<pre class="ui-output">' in html
-    assert capture.WEB_UI_BASE + "/css/themes/modern.css" in html
+    assert "/* css/themes/modern.css */" in html and "cdn.jsdelivr.net" not in html
     assert '<link rel="icon" type="image/png" href="./favicon.png">' in html
     assert '<link rel="apple-touch-icon" href="./icon.png">' in html
     assert 'src="./icon.png"' in html

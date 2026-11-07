@@ -1,16 +1,14 @@
 {
   "schema": "btk-evidence-gif/1",
   "gif": "browser.gif",
-  "bytes": 202762,
-  "sha256": "4829550a8c06c71c346b6fc460ab64383341336f443cd25fbe9b9dd99bbbd5fd",
+  "bytes": 199963,
+  "sha256": "a945481d4a062145666906c9d1df5887e5eafceeafc932cffc9fe4c583181303",
   "frames": 7,
   "canvas": "720x512",
   "browser": "chromium 153.0.8010.12",
   "recorded": "2026-11-08",
   "commit": "22b1a86d2a771b75927e0cf774a904864e7d3c85",
-  "mapped": [
-    "https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@34129d546c39ca961b12e926b944cc1b7f37f5e3/"
-  ],
+  "mapped": [],
   "summary": {
     "pass": 7,
     "fail": 0

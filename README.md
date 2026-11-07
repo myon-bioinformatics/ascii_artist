@@ -308,17 +308,15 @@ with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 | --- | --- |
 | `tests/test_capture_pages.py` | ✅ 10 |
 | `tests.test_ascii_artist_repository_diagnostics` | ✅ |
-| `scripts/capture_pages.py` (pinned web-ui `34129d5`) + `check_capture_evidence.py` | ✅ 6 captures |
+| `scripts/capture_pages.py` + `check_capture_evidence.py` | ✅ 6 captures |
 | 🎞️ evidence GIF shots | ✅ 7 |
 
 🚫 Firefox / WebKit not installed here.
 
-🔁 Re-record (after the Pages build and `capture_pages.py`; `$WEBUI` = PySaiyanWeBoo at `34129d5`):
+🔁 Re-record (after the Pages build and `capture_pages.py`; every page embeds its CSS, nothing is fetched from a CDN):
 
 ```sh
-python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve _site \
-  --map "https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@34129d546c39ca961b12e926b944cc1b7f37f5e3=$WEBUI" \
-  --plan docs/evidence/browser.json
+python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve _site --plan docs/evidence/browser.json
 ```
 
 ## Shared screenshot evidence

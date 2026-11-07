@@ -1,7 +1,7 @@
 """Capture asserted ASCII output and canonical diagnostics with Chromium.
 
 Browser dependencies belong to this CI tool, never to ascii_artist.py.
-Shared web-ui assets are served from a separately pinned checkout for offline CI.
+The shared CSS is embedded from the pinned PySaiyanWeBoo dependency, so no asset is fetched.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from threading import Thread
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import ascii_artist as art
-from scripts.ascii_artist_repository_diagnostics import WEB_UI_BASE, write_favicon
+from scripts.ascii_artist_repository_diagnostics import write_favicon
 
 
 def sample_output() -> str:
@@ -30,8 +30,9 @@ def write_sample(site: Path) -> str:
     write_favicon(site)
     output = sample_output()
     document = art.to_web_ui_v1_html(output, title="ASCII output evidence")
-    links = "\n".join(f'<link rel="stylesheet" href="{WEB_UI_BASE}/css/{name}.css">'
-                      for name in ("tokens", "base", "components", "themes/modern"))
+    import web_ui  # the pinned git dependency in the dev group
+
+    links = "<style>" + web_ui.bundled_css() + "</style>"  # embedded, so the page is self-contained
     links += '\n<link rel="icon" type="image/png" href="./favicon.png">'
     links += '\n<link rel="apple-touch-icon" href="./icon.png">'
     (site / "ascii-output.html").write_text(document.replace("</head>", links + "</head>").replace('<h1', '<img src="./icon.png" width="80" height="80" alt="ascii_artist icon"><h1', 1), encoding="utf-8")
@@ -106,7 +107,7 @@ def assert_in_view(locator, page) -> None:
     assert box["y"] + box["height"] <= viewport["height"]
 
 
-def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
+def capture(site: Path, results: Path, expected_sha: str) -> None:
     from playwright.sync_api import expect, sync_playwright
 
     # Do not let a previous attempt's complete receipt satisfy current coverage.
@@ -134,12 +135,6 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
             context.tracing.start(screenshots=True, snapshots=True, sources=True)
             page = context.new_page()
             receipt["browser_version"] = browser.version
-            def asset(route):
-                relative = route.request.url.removeprefix(WEB_UI_BASE + "/")
-                target = (web_ui / relative).resolve()
-                target.relative_to(web_ui.resolve())
-                route.fulfill(path=target)
-            page.route(WEB_UI_BASE + "/**", asset)
             try:
                 base = f"http://127.0.0.1:{server.server_port}"
                 page.goto(base + "/ascii-output.html")
@@ -196,7 +191,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", type=Path, default=ROOT / "_site")
     parser.add_argument("--results", type=Path, default=ROOT / "test-results/pages")
-    parser.add_argument("--web-ui", type=Path, required=True)
     parser.add_argument("--sha", required=True)
     args = parser.parse_args()
-    capture(args.site.resolve(), args.results.resolve(), args.web_ui.resolve(), args.sha)
+    capture(args.site.resolve(), args.results.resolve(), args.sha)
