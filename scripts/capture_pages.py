@@ -192,11 +192,16 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
         thread.join()
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", type=Path, default=ROOT / "_site")
     parser.add_argument("--results", type=Path, default=ROOT / "test-results/pages")
     parser.add_argument("--web-ui", type=Path, required=True)
     parser.add_argument("--sha", required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     capture(args.site.resolve(), args.results.resolve(), args.web_ui.resolve(), args.sha)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
