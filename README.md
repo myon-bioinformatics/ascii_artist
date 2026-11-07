@@ -298,6 +298,29 @@ and compact evidence are not added to Pages. Docs-only runs skip collection.
 The collector requires the exact four matrix report paths (Python 3.11–3.14). Keep this set aligned
 with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 
+## 🎞️ Browser evidence
+
+![ASCII output, diagnostics and light/dark card flows at 1280 and 320 px in Chromium](docs/evidence/browser.gif)
+
+🗓️ 2026-11-07 · 🧭 Chromium 153 · 🐧 Linux · receipt [`docs/evidence/browser.json`](docs/evidence/browser.json)
+
+| 🧪 Suite | Result |
+| --- | --- |
+| `tests/test_capture_pages.py` | ✅ 10 |
+| `tests.test_ascii_artist_repository_diagnostics` | ✅ |
+| `scripts/capture_pages.py` (pinned web-ui `34129d5`) + `check_capture_evidence.py` | ✅ 6 captures |
+| 🎞️ evidence GIF shots | ✅ 7 |
+
+🚫 Firefox / WebKit not installed here.
+
+🔁 Re-record (after the Pages build and `capture_pages.py`; `$WEBUI` = PySaiyanWeBoo at `34129d5`):
+
+```sh
+python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve _site \
+  --map "https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@34129d546c39ca961b12e926b944cc1b7f37f5e3=$WEBUI" \
+  --plan docs/evidence/browser.json
+```
+
 ## Shared screenshot evidence
 
 The Pages build now renders actual `branch()` and `get_template()` output through

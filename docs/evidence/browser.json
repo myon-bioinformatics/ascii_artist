@@ -1,0 +1,127 @@
+{
+  "schema": "btk-evidence-gif/1",
+  "gif": "browser.gif",
+  "bytes": 202762,
+  "sha256": "4829550a8c06c71c346b6fc460ab64383341336f443cd25fbe9b9dd99bbbd5fd",
+  "frames": 7,
+  "canvas": "720x512",
+  "browser": "chromium 153.0.8010.12",
+  "recorded": "2026-11-08",
+  "commit": "22b1a86d2a771b75927e0cf774a904864e7d3c85",
+  "mapped": [
+    "https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@34129d546c39ca961b12e926b944cc1b7f37f5e3/"
+  ],
+  "summary": {
+    "pass": 7,
+    "fail": 0
+  },
+  "shots": [
+    {
+      "label": "🔤 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": []
+    },
+    {
+      "label": "🩺 repository diagnostics",
+      "url": "/index.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": []
+    },
+    {
+      "label": "🔀 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": []
+    },
+    {
+      "label": "🔀 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": []
+    },
+    {
+      "label": "📱 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "320x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": []
+    },
+    {
+      "label": "📱 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "320x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": []
+    },
+    {
+      "label": "📱 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "392x848",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": []
+    }
+  ],
+  "plan": [
+    {
+      "label": "🔤 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "🩺 repository diagnostics",
+      "url": "/index.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "🔀 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "🔀 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "📱 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "320x800"
+    },
+    {
+      "label": "📱 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "320x800"
+    },
+    {
+      "label": "📱 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "392x848"
+    }
+  ]
+}
