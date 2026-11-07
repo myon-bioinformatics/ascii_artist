@@ -1,4 +1,4 @@
-"""ascii_artist.cjs: Node entry parity with ascii_artist.py through the vendored shared py_launch.cjs."""
+"""Node entry parity with ascii_artist.py, calling the vendored shared py_launch.cjs directly (no per-tool wrapper)."""
 from __future__ import annotations
 
 import hashlib
@@ -77,8 +77,14 @@ def _run(argv: list[str], cwd: Path, stdin: str = "") -> tuple[int, str, str]:
     return p.returncode, p.stdout, p.stderr
 
 
+def _direct(root: Path, *args: str) -> list[str]:
+    """The documented command: node vendor/py_launch.cjs --env-var ASCII_ARTIST_PYTHON -- ascii_artist.py ARGS."""
+    return [NODE, str(root / "vendor" / "py_launch.cjs"), "--env-var", ENV_VAR, "--",
+            str(root / f"{TOOL}.py"), *args]
+
+
 def _parity(root: Path, case: dict) -> tuple[tuple[int, str, str], tuple[int, str, str]]:
-    via_node = _run([NODE, str(root / f"{TOOL}.cjs"), *case["args"]], root, case["stdin"])
+    via_node = _run(_direct(root, *case["args"]), root, case["stdin"])
     via_python = _run([sys.executable, "-S", str(ROOT / f"{TOOL}.py"), *case["args"]], root, case["stdin"])
     return via_node, via_python
 
@@ -94,11 +100,10 @@ def test_vendored_py_launch_matches_lock():
     assert blob == entry["blob_sha"]
 
 
-def test_cjs_is_thin_and_engines_pinned():
-    text = (ROOT / f"{TOOL}.cjs").read_text(encoding="utf-8")
-    assert 'require("./vendor/py_launch.cjs")' in text
-    assert "child_process" not in text
-    assert f'"{TOOL}.py"' in text
+def test_no_per_tool_wrapper_and_readme_documents_the_direct_command():
+    assert not (ROOT / f"{TOOL}.cjs").exists()
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert f"node vendor/py_launch.cjs --env-var {ENV_VAR} -- {TOOL}.py" in readme
     pkg = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
     assert pkg["engines"]["node"] == ">=26"
 
@@ -115,42 +120,10 @@ def test_node_python_parity(case):
 def test_missing_interpreter_exits_2(tmp_path):
     env = _env()
     env[ENV_VAR] = str(tmp_path / "no-such-python")
-    p = subprocess.run([NODE, str(ROOT / f"{TOOL}.cjs"), "--help"], env=env,
+    p = subprocess.run(_direct(ROOT, "--help"), env=env,
                        capture_output=True, text=True, encoding="utf-8", timeout=60)
     assert p.returncode == 2
     assert p.stdout == ""
-
-
-def _copy_tree(tmp_path: Path, cjs_text: str | None = None) -> None:
-    (tmp_path / "vendor").mkdir()
-    shutil.copy(ROOT / "vendor" / "py_launch.cjs", tmp_path / "vendor" / "py_launch.cjs")
-    shutil.copy(ROOT / f"{TOOL}.py", tmp_path / f"{TOOL}.py")
-    text = (ROOT / f"{TOOL}.cjs").read_text(encoding="utf-8") if cjs_text is None else cjs_text
-    (tmp_path / f"{TOOL}.cjs").write_text(text, encoding="utf-8")
-
-
-def _all_parity(root: Path) -> bool:
-    return all(_parity(root, c)[0] == _parity(ROOT, c)[1] for c in CASES)
-
-
-@needs_node
-def test_unmutated_copy_keeps_parity(tmp_path):
-    _copy_tree(tmp_path)
-    assert _all_parity(tmp_path)
-
-
-@needs_node
-@pytest.mark.parametrize("old,new", [
-    (f'"{TOOL}.py"', '"missing_tool.py"'),
-    ("main(PY_SCRIPT, PY_LAUNCH);", "main(PY_SCRIPT, { ...PY_LAUNCH, argv: [] });"),
-    ("noSite: true", "noSite: true, isolated: true, argv: ['--help']"),
-    ("if (require.main === module)", "if (require.main !== module)"),
-])
-def test_mutated_cjs_breaks_parity(tmp_path, old, new):
-    text = (ROOT / f"{TOOL}.cjs").read_text(encoding="utf-8")
-    assert old in text
-    _copy_tree(tmp_path, text.replace(old, new))
-    assert not _all_parity(tmp_path)
 
 
 @needs_node
@@ -158,13 +131,12 @@ def test_mutated_cjs_breaks_parity(tmp_path, old, new):
 def test_passthrough_argv_stdin_exit(tmp_path, code):
     (tmp_path / "vendor").mkdir()
     shutil.copy(ROOT / "vendor" / "py_launch.cjs", tmp_path / "vendor" / "py_launch.cjs")
-    shutil.copy(ROOT / f"{TOOL}.cjs", tmp_path / f"{TOOL}.cjs")
     (tmp_path / f"{TOOL}.py").write_text(
         "import json, sys\n"
         "sys.stdout.write(json.dumps({'argv': sys.argv[1:], 'stdin': sys.stdin.read(),"
         " 'nosite': sys.flags.no_site}))\n"
         f"sys.exit({code})\n", encoding="utf-8")
-    p = subprocess.run([NODE, str(tmp_path / f"{TOOL}.cjs"), "a b", "--x=ü"], env=_env(),
+    p = subprocess.run(_direct(tmp_path, "a b", "--x=ü"), env=_env(),
                        input="こんにちは\n", capture_output=True, text=True, encoding="utf-8", timeout=60)
     assert p.returncode == code
     assert json.loads(p.stdout) == {"argv": ["a b", "--x=ü"], "stdin": "こんにちは\n", "nosite": 1}
@@ -173,13 +145,12 @@ def test_passthrough_argv_stdin_exit(tmp_path, code):
 @pytest.mark.skipif(os.name == "nt", reason="POSIX signal forwarding contract")
 @pytest.mark.parametrize("json_errors", [False, True], ids=["text", "json"])
 def test_entry_forwards_repeated_signals_until_child_exits(tmp_path, json_errors):
-    """Exercise the real entry and vendored launcher, with ack-driven signals."""
+    """Exercise the vendored launcher, with ack-driven signals."""
     import selectors
     import signal
 
     (tmp_path / "vendor").mkdir()
     shutil.copy(ROOT / "vendor" / "py_launch.cjs", tmp_path / "vendor" / "py_launch.cjs")
-    shutil.copy(ROOT / f"{TOOL}.cjs", tmp_path / f"{TOOL}.cjs")
     (tmp_path / f"{TOOL}.py").write_text(
         "import signal, time\n"
         "signal.signal(signal.SIGINT, lambda *_: print('ACK', flush=True))\n"
@@ -190,7 +161,7 @@ def test_entry_forwards_repeated_signals_until_child_exits(tmp_path, json_errors
     env = _env()
     env["PY_LAUNCH_ERROR_FORMAT"] = "json" if json_errors else ""
     child = subprocess.Popen(
-        [NODE, str(tmp_path / f"{TOOL}.cjs")],
+        _direct(tmp_path),
         env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, start_new_session=True,
     )
@@ -232,9 +203,6 @@ def test_entry_no_site_also_protects_interpreter_probe(tmp_path):
     )
     env = _env()
     env["PYTHONPATH"] = str(tmp_path)
-    result = subprocess.run(
-        [NODE, str(ROOT / f"{TOOL}.cjs"), "--help"], env=env,
-        capture_output=True, timeout=15,
-    )
+    result = subprocess.run(_direct(ROOT, "--help"), env=env, capture_output=True, timeout=15)
     assert result.returncode == 0
     assert not marker.exists(), "noSite must cover interpreter discovery too"
