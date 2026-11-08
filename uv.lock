@@ -18,7 +18,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pysaiyanweboo", marker = "python_full_version >= '3.11'", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=e4c25ddba45b05850cfd2c9666638b1617254990" },
+    { name = "pysaiyanweboo", marker = "python_full_version >= '3.11'", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=1854362d625279f4278f917cd18bacd151bc69b4" },
     { name = "pytest", marker = "python_full_version >= '3.11'", specifier = ">=9.1.1" },
     { name = "pyyaml", marker = "python_full_version >= '3.11'", specifier = ">=6.0.3" },
 ]
@@ -71,7 +71,7 @@ wheels = [
 [[package]]
 name = "pysaiyanweboo"
 version = "0.1.0"
-source = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=e4c25ddba45b05850cfd2c9666638b1617254990#e4c25ddba45b05850cfd2c9666638b1617254990" }
+source = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=1854362d625279f4278f917cd18bacd151bc69b4#1854362d625279f4278f917cd18bacd151bc69b4" }
 
 [[package]]
 name = "pytest"
