@@ -9,7 +9,7 @@ dev = [
   "pytest>=9.1.1",
   "PyYAML>=6.0.3",
   # The shared diagnostics page and bundled CSS (web_ui); move the pin with: uv lock --upgrade-package pysaiyanweboo
-  "pysaiyanweboo @ git+https://github.com/myon-bioinformatics/PySaiyanWeBoo@10d52554ec63c050ffe489d3f98af0747ce40d7a",
+  "pysaiyanweboo @ git+https://github.com/myon-bioinformatics/PySaiyanWeBoo@f624d9364017b7e2da7f797817dfba2a8d9adb14",
 ]
 
 # Vendored/source runtime has no dependencies. uv manages contributor tools only.
