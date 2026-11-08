@@ -316,7 +316,7 @@ with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 🔁 Re-record (after the Pages build and `capture_pages.py`; the evidence and diagnostics pages are built with PySaiyanWeBoo's `web_ui` and embed their CSS, nothing is fetched from a CDN):
 
 ```sh
-python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve _site --plan docs/evidence/browser.json
+uv run --project ../BrowserTestKit --group pages --group browser python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve _site --plan docs/evidence/browser.json
 ```
 
 ## Shared screenshot evidence
