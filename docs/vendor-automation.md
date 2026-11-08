@@ -31,7 +31,7 @@ LICENSE bytes remain protected by `.gitattributes` `-text` entries. GHI is
 enrolled in the allowlist without becoming an `ascii_artist.py` runtime
 dependency.
 
-Both the primary Python matrix and the independent `test-locked` job load the
+Both the primary Python matrix and the independent `vendor-locked` job load the
 verified `vendor/gh_identity.py` with `python -S` before running tests.
 
 ALM agents can reproduce verification in a disposable checkout:
@@ -50,7 +50,7 @@ Run the existing Python suite with its test-only dependencies after verification
 ## What a green run covers
 
 The primary Python job tests the materialized snapshot from `resolve-vendor`. The
-separate `test-locked` job tests the checked-in baseline on Python 3.12: verify,
+separate `vendor-locked` job tests the checked-in baseline on Python 3.12: verify,
 materialize, verify again, then run the suite. Locked evidence uses a
 `locked-` artifact prefix.
 
