@@ -1,8 +1,6 @@
 """Stdlib DAG frontier parity against the original full-scan layer definition."""
+import random, sys, unittest
 from pathlib import Path
-import random
-import sys
-import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import ascii_artist as art

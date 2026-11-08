@@ -1,8 +1,5 @@
 """Keep stdlib flow checks runnable without the optional Node 26 adapter."""
-import os
-import re
-import shutil
-import subprocess
+import os, re, shutil, subprocess
 
 
 def supported_node():

@@ -1,7 +1,5 @@
 """Vendor-lock-only CI regression (no promote/update or legacy provenance projection)."""
-import shlex
-import subprocess
-import sys
+import shlex, subprocess, sys
 from pathlib import Path
 
 import pytest

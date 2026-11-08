@@ -2,14 +2,8 @@
 
 Run with pytest explicitly; this pending-upstream gate is outside tests/.
 """
-import json
-import os
+import json, os, shutil, signal, subprocess, sys, time
 from pathlib import Path
-import shutil
-import signal
-import subprocess
-import sys
-import time
 
 import pytest
 
