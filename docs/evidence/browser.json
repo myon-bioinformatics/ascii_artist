@@ -1,13 +1,13 @@
 {
   "schema": "btk-evidence-gif/1",
   "gif": "browser.gif",
-  "bytes": 199963,
-  "sha256": "a945481d4a062145666906c9d1df5887e5eafceeafc932cffc9fe4c583181303",
+  "bytes": 200499,
+  "sha256": "ab2c7353a6522d42f176674ed82afb6af3c7234e0e578bdc4bad96f4c585a933",
   "frames": 7,
   "canvas": "720x512",
   "browser": "chromium 153.0.8010.12",
   "recorded": "2026-11-08",
-  "commit": "22b1a86d2a771b75927e0cf774a904864e7d3c85",
+  "commit": null,
   "mapped": [],
   "summary": {
     "pass": 7,

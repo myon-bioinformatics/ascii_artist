@@ -9,6 +9,7 @@ import argparse
 from functools import partial
 import hashlib
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import html
 import json
 import os
 from pathlib import Path
@@ -27,15 +28,20 @@ def sample_output() -> str:
 
 
 def write_sample(site: Path) -> str:
+    """The evidence page: ascii_artist's own semantic HTML (stdlib-only library, CSS consumer-owned) inside
+    PySaiyanWeBoo's page shell, so the page is self-contained and styled like the other repositories'."""
     write_favicon(site)
     output = sample_output()
-    document = art.to_web_ui_v1_html(output, title="ASCII output evidence")
     import web_ui  # the pinned git dependency in the dev group
 
-    links = "<style>" + web_ui.bundled_css() + "</style>"  # embedded, so the page is self-contained
-    links += '\n<link rel="icon" type="image/png" href="./favicon.png">'
-    links += '\n<link rel="apple-touch-icon" href="./icon.png">'
-    (site / "ascii-output.html").write_text(document.replace("</head>", links + "</head>").replace('<h1', '<img src="./icon.png" width="80" height="80" alt="ascii_artist icon"><h1', 1), encoding="utf-8")
+    body = (
+        '<main class="ui-page"><img src="./icon.png" width="80" height="80" alt="ascii_artist icon">'
+        '<h1 class="ui-title">ASCII output evidence</h1>'
+        f'<section class="ui-panel"><pre class="ui-output">{html.escape(output)}</pre></section></main>'
+    )
+    page = web_ui.render_document(trusted_html=body, title="ASCII output evidence", css=web_ui.core_css(),
+                                  favicon="./favicon.png", touch_icon="./icon.png")
+    (site / "ascii-output.html").write_text(page, encoding="utf-8")
     return output
 
 
