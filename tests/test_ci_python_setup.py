@@ -11,7 +11,7 @@ JOBS = {
     "ci.yml": {
         "resolve-vendor": "3.15",
         "test": "${{ matrix.python-version }}",
-        "test-locked": "${{ matrix.python-version }}"
+        "vendor-locked": "${{ matrix.python-version }}"
     },
     "pages.yml": {
         "checks": "3.15",
@@ -99,7 +99,7 @@ class CiPythonSetupTests(unittest.TestCase):
         self.assertEqual(json.loads(match.group(1)), EXPECTED_REPORTS)
 
     def test_locked_baseline_and_pages_venv_sync_are_preserved(self):
-        locked = job("ci.yml", "test-locked")
+        locked = job("ci.yml", "vendor-locked")
         self.assertRegex(locked, r"python-version:\s*\n\s*- '3\.12'")
         self.assertIn("name: locked-junit-py${{ matrix.python-version }}", locked)
         for name in ("checks", "build"):
