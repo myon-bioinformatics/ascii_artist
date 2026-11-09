@@ -1,13 +1,7 @@
 """Additional migrated Node contracts and standalone single-file regressions."""
-import copy
-import json
-import os
+import copy, json, os, subprocess, sys, tempfile, unittest
 from pathlib import Path
-import subprocess
-import sys
-import tempfile
-import unittest
-from flow_test_support import NODE
+from flow_test_support import NODE, NODE_ENTRY
 
 from ascii_artist import (FLOW_MAX_INPUT, FLOW_MAX_PATCH, flow_css, flow_document,
                           flow_html, flow_mermaid, from_dict, patch_flow, validate_flow)
@@ -85,7 +79,7 @@ class CardFlowContractTests(unittest.TestCase):
             for size, code in ((budget, 0), (budget + 1, 2)):
                 data = raw + b' ' * (size - len(raw))
                 outputs = []
-                for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([[NODE, 'ascii_artist.cjs']] if NODE else [])):
+                for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([NODE_ENTRY] if NODE else [])):
                     result = subprocess.run([*runner, command], input=data, capture_output=True, cwd=ROOT, env=env)
                     self.assertEqual(result.returncode, code, result.stderr)
                     if code:
@@ -95,12 +89,12 @@ class CardFlowContractTests(unittest.TestCase):
         for fmt in ('html', 'fragment', 'mermaid'):
             results = [subprocess.run([*runner, 'flow-cards', '--format', fmt], input=json.dumps(SPEC).encode(),
                                       capture_output=True, cwd=ROOT, env=env)
-                       for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([[NODE, 'ascii_artist.cjs']] if NODE else []))]
+                       for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([NODE_ENTRY] if NODE else []))]
             self.assertEqual([r.returncode for r in results], [0] * len(results))
             self.assertTrue(all(r.stdout == results[0].stdout for r in results))
 
     def test_deep_invalid_json_has_clean_failure(self):
-        for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([[NODE, 'ascii_artist.cjs']] if NODE else [])):
+        for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([NODE_ENTRY] if NODE else [])):
             for command in ('flow-cards', 'flow-patch'):
                 result = subprocess.run([*runner, command], input=b'[' * 10000 + b']' * 10000,
                                         capture_output=True, cwd=ROOT)
@@ -111,7 +105,7 @@ class CardFlowContractTests(unittest.TestCase):
     def test_flow_cli_utf8_independent_of_stdout_locale(self):
         env = dict(os.environ, PYTHONIOENCODING="cp1252", ASCII_ARTIST_PYTHON=sys.executable)
         for command, document in (("flow-cards", SPEC), ("flow-patch", {"spec": SPEC, "patch": []})):
-            for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([[NODE, 'ascii_artist.cjs']] if NODE else [])):
+            for runner in ([[sys.executable, '-S', 'ascii_artist.py']] + ([NODE_ENTRY] if NODE else [])):
                 result = subprocess.run([*runner, command], input=json.dumps(document).encode("utf-8"),
                                         capture_output=True, cwd=ROOT, env=env)
                 self.assertEqual(result.returncode, 0, result.stderr)

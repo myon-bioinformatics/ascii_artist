@@ -5,17 +5,8 @@ The shared CSS is embedded from the pinned PySaiyanWeBoo dependency, so no asset
 """
 from __future__ import annotations
 
-import argparse
-from functools import partial
-import hashlib
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-import html
-import json
-import os
-from pathlib import Path
-import shutil
-import sys
-from threading import Thread
+import argparse, hashlib, html, json, os, shutil, sys
+from functools import partial; from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer; from pathlib import Path; from threading import Thread
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -193,10 +184,15 @@ def capture(site: Path, results: Path, expected_sha: str) -> None:
         thread.join()
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", type=Path, default=ROOT / "_site")
     parser.add_argument("--results", type=Path, default=ROOT / "test-results/pages")
     parser.add_argument("--sha", required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     capture(args.site.resolve(), args.results.resolve(), args.sha)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

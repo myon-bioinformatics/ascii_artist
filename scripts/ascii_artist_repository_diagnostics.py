@@ -1,14 +1,8 @@
 """Build canonical repository diagnostics JSON/JSONL/HTML for Pages."""
 from __future__ import annotations
 
-import importlib.util
-import json
-import os
-from pathlib import Path
-import platform
-import sys
-from types import ModuleType
-from typing import Any, Mapping
+import importlib.util, json, os, platform, sys
+from pathlib import Path; from types import ModuleType; from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "myon-bioinformatics/ascii_artist"
@@ -119,6 +113,11 @@ def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:
     return payload
 
 
-if __name__ == "__main__":
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "_site"
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
+    target = Path(argv[0]) if len(argv) > 0 else ROOT / "_site"
     write_outputs(target)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

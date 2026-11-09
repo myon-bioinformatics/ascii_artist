@@ -48,7 +48,10 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       - name: Sync locked development environment (pins PySaiyanWeBoo for the shared page)
         shell: bash
         run: |
@@ -79,13 +82,15 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       - name: Install browser test dependencies (the dev group pins PySaiyanWeBoo for the shared CSS and page)
         shell: bash
         run: |
-          uv sync --locked --group dev --python "$(python -c 'import sys; print(sys.executable)')"
+          uv sync --locked --group dev --group browser --python "$(python -c 'import sys; print(sys.executable)')"
           python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
-          uv pip install --python .venv/bin/python 'playwright>=1.64.0'
           .venv/bin/python -m playwright install --with-deps --only-shell chromium
       - name: Build Pages tree
         run: |

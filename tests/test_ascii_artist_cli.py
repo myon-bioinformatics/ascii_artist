@@ -1,10 +1,7 @@
 """ascii_artist.py command-line entry point: unit tests and real-file mutation checks."""
 from __future__ import annotations
 
-import io
-import shutil
-import subprocess
-import sys
+import io, shutil, subprocess, sys
 from pathlib import Path
 
 import pytest

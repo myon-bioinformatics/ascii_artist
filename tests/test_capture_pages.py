@@ -1,7 +1,6 @@
 """Test screenshot content and reject offscreen targets without browser deps."""
 import importlib.util
-from pathlib import Path
-from types import SimpleNamespace
+from pathlib import Path; from types import SimpleNamespace
 
 import pytest
 

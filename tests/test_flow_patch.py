@@ -1,9 +1,6 @@
-import json
+import json, subprocess, sys, unittest
 from pathlib import Path
-import subprocess
-import sys
-import unittest
-from flow_test_support import NODE, node_command
+from flow_test_support import NODE, NODE_ENTRY, node_command
 
 from ascii_artist import validate_flow as canonical, patch_flow
 
@@ -51,7 +48,7 @@ class FlowPatchTests(unittest.TestCase):
         input_text = json.dumps(data, ensure_ascii=False)
         py = subprocess.run([sys.executable, "-S", "ascii_artist.py", "flow-patch"], input=input_text,
                             text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
-        node = subprocess.run([NODE, "ascii_artist.cjs", "flow-patch"], input=input_text,
+        node = subprocess.run([*NODE_ENTRY, "flow-patch"], input=input_text,
                               text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
         self.assertEqual(py.returncode, 0, py.stderr)
         self.assertEqual(node.returncode, 0, node.stderr)

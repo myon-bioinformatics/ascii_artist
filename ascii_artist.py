@@ -43,15 +43,8 @@ __all__ = [
     "patch_flow",
 ]
 
-import argparse
-import html
-import json
-import re
-import sys
-import unicodedata
-from collections import deque
-from dataclasses import dataclass
-from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
+import argparse, html, json, re, sys, unicodedata
+from collections import deque; from dataclasses import dataclass; from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
     "generation": [

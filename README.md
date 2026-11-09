@@ -221,10 +221,11 @@ input (one `ascii_artist.py: error:` line on stderr).
 
 ## Node entry (Node 26+)
 
-`node ascii_artist.cjs <args>` runs `ascii_artist.py` through the vendored shared launcher
-`vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and the
-exit code are passed through unchanged; Python runs with `-S`. Set `ASCII_ARTIST_PYTHON` to pick
-a Python 3.11+ interpreter for supported use. The pinned launcher still probes
+`node vendor/py_launch.cjs --env-var ASCII_ARTIST_PYTHON -- ascii_artist.py <args>` runs
+`ascii_artist.py` through the vendored shared launcher `vendor/py_launch.cjs` (pinned in
+`vendor.lock.json`); there is no per-tool `.cjs` wrapper. Arguments, stdin/stdout/stderr and the
+exit code are passed through unchanged; Python runs with `-S`. `ASCII_ARTIST_PYTHON` picks
+a Python 3.11+ interpreter for supported use. A Node older than 26 exits 2. The pinned launcher still probes
 for Python 3.9+; that discovery threshold is not this tool's support policy.
 Launcher failures (no Python 3.9+, spawn error, signal) exit 2.
 

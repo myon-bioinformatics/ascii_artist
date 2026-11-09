@@ -12,6 +12,9 @@ dev = [
   "pysaiyanweboo @ git+https://github.com/myon-bioinformatics/PySaiyanWeBoo@f624d9364017b7e2da7f797817dfba2a8d9adb14",
 ]
 
+# Only Pages capture installs browser tools; default sync keeps them out.
+browser = ["playwright>=1.64.0"]
+
 # Vendored/source runtime has no dependencies. uv manages contributor tools only.
 [tool.uv]
 package = false
