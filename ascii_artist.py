@@ -1234,6 +1234,8 @@ def _cli_parser() -> argparse.ArgumentParser:
     cards.add_argument("--no-embed-css", action="store_true")
     patch = commands.add_parser("flow-patch", help="atomically patch JSON cards from stdin", allow_abbrev=False)
     patch.add_argument("--pretty", action="store_true")
+    for each in (parser, *commands.choices.values()):
+        each.suggest_on_error = True  # 🤔 argparse 3.14+: "maybe you meant" for commands and choices; older Pythons ignore it
     return parser
 
 
