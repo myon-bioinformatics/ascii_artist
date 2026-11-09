@@ -81,12 +81,14 @@ class CiPythonSetupTests(unittest.TestCase):
                     )
                     self.assertIsNotNone(command, "No interpreter consumer was checked")
                     self.assertLess(setup, command.start(), "Python ran before setup-uv")
-                    setup_inputs = block[setup:].split("\n", 7)[:6]
+                    setup_inputs = block[setup:].split("\n", 10)[:9]
                     inputs = "\n".join(setup_inputs)
                     self.assertIn('version: "latest"', inputs)
                     self.assertIn(f'python-version: "{version}"', inputs)
                     self.assertIn("activate-environment: true", inputs)
-                    self.assertIn("enable-cache: false", inputs)
+                    self.assertIn("enable-cache: true", inputs)
+                    self.assertIn("save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}", inputs)  # only main writes
+                    self.assertIn("prune-cache: true", inputs)
 
     def test_compatibility_matrix_and_required_report_identities_are_preserved(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -95,13 +97,24 @@ class CiPythonSetupTests(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertEqual(json.loads(match.group(1)), EXPECTED_REPORTS)
 
-    def test_locked_baseline_and_pages_venv_install_are_preserved(self):
+    def test_locked_baseline_and_pages_venv_sync_are_preserved(self):
         locked = job("ci.yml", "vendor-locked")
         self.assertRegex(locked, r"python-version:\s*\n\s*- '3\.12'")
         self.assertIn("name: locked-junit-py${{ matrix.python-version }}", locked)
         for name in ("checks", "build"):
-            self.assertIn("uv pip install ", job("pages.yml", name))
-            self.assertNotIn("python -m pip", job("pages.yml", name))
+            block = job("pages.yml", name)
+            sync = "uv sync --locked --group dev --python \"$(python -c 'import sys; print(sys.executable)')\""
+            if name == "build":
+                sync = sync.replace("--group dev", "--group dev --group browser")
+            self.assertNotIn("uv pip install", block)
+            path_export = "python -c \"import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))\" >> \"$GITHUB_PATH\""
+            self.assertIn(sync, block)
+            self.assertIn(path_export, block)
+            self.assertLess(block.index(sync), block.index(path_export))
+            self.assertNotIn("python -m pip", block)
+        self.assertIn(".venv/bin/python -m playwright install", job("pages.yml", "build"))
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        self.assertEqual(project["dependency-groups"]["browser"], ["playwright>=1.64.0"])
         self.assertIn("if: github.ref == 'refs/heads/main'", job("pages.yml", "deploy"))
 
 

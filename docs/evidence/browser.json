@@ -1,0 +1,166 @@
+{
+  "schema": "btk-evidence-gif/2",
+  "gif": "browser.gif",
+  "bytes": 165591,
+  "sha256": "cea76cc83f6d29b4db717702c394edf2b7957a24e9f279d32a08d3edcc92e588",
+  "frames": 7,
+  "canvas": "720x512",
+  "browser": "chromium 153.0.8010.12",
+  "recorded": "2026-11-08",
+  "commit": "0c53561e98944c6638a89fad238f717a22d92055",
+  "encoder": {
+    "module": "PySaiyanWeBoo web_ui gif.js",
+    "web_ui": "d55e14fcf3f088522259295e4a8cf9564beb5721",
+    "bytes": 165591,
+    "frames": 7,
+    "colors": 255,
+    "thin": 0,
+    "attempts": 1,
+    "stored": 7,
+    "merged": 0,
+    "buckets": 4231,
+    "overBudget": false,
+    "encodeMs": 117,
+    "images": 7,
+    "reused": 0,
+    "patches": 0,
+    "synthesized": 0,
+    "capture_s": 5.8
+  },
+  "limits": {
+    "colors": 255,
+    "max_bytes": null,
+    "max_frames": 300,
+    "last_hold_ms": 2000
+  },
+  "transfer": {
+    "screenshots": 7,
+    "png_bytes": 386770,
+    "identical": 0,
+    "patches": 0,
+    "calls": 7,
+    "sent_bytes": 515700,
+    "gif_bytes": 165591
+  },
+  "mapped": [],
+  "summary": {
+    "pass": 7,
+    "fail": 0
+  },
+  "shots": [
+    {
+      "label": "🔤 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": [],
+      "generator": "web_ui 1854362d625279f4278f917cd18bacd151bc69b4"
+    },
+    {
+      "label": "🩺 repository diagnostics",
+      "url": "/index.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": [],
+      "generator": "web_ui 1854362d625279f4278f917cd18bacd151bc69b4"
+    },
+    {
+      "label": "🔀 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": [],
+      "generator": null
+    },
+    {
+      "label": "🔀 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "1280x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": [],
+      "generator": null
+    },
+    {
+      "label": "📱 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "320x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": [],
+      "generator": null
+    },
+    {
+      "label": "📱 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "320x800",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": [],
+      "generator": null
+    },
+    {
+      "label": "📱 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "392x848",
+      "steps": [],
+      "status": "pass",
+      "errors": [],
+      "allowed": [],
+      "external": [],
+      "generator": "web_ui 1854362d625279f4278f917cd18bacd151bc69b4"
+    }
+  ],
+  "plan": [
+    {
+      "label": "🔤 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "🩺 repository diagnostics",
+      "url": "/index.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "🔀 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "🔀 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "1280x800"
+    },
+    {
+      "label": "📱 flow github-like",
+      "url": "/flow-github-like.html",
+      "viewport": "320x800"
+    },
+    {
+      "label": "📱 flow modern",
+      "url": "/flow-modern.html",
+      "viewport": "320x800"
+    },
+    {
+      "label": "📱 ASCII output",
+      "url": "/ascii-output.html",
+      "viewport": "392x848"
+    }
+  ]
+}

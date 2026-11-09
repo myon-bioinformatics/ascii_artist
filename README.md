@@ -221,10 +221,11 @@ input (one `ascii_artist.py: error:` line on stderr).
 
 ## Node entry (Node 26+)
 
-`node ascii_artist.cjs <args>` runs `ascii_artist.py` through the vendored shared launcher
-`vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and the
-exit code are passed through unchanged; Python runs with `-S`. Set `ASCII_ARTIST_PYTHON` to pick
-a Python 3.11+ interpreter for supported use. The pinned launcher still probes
+`node vendor/py_launch.cjs --env-var ASCII_ARTIST_PYTHON -- ascii_artist.py <args>` runs
+`ascii_artist.py` through the vendored shared launcher `vendor/py_launch.cjs` (pinned in
+`vendor.lock.json`); there is no per-tool `.cjs` wrapper. Arguments, stdin/stdout/stderr and the
+exit code are passed through unchanged; Python runs with `-S`. `ASCII_ARTIST_PYTHON` picks
+a Python 3.11+ interpreter for supported use. A Node older than 26 exits 2. The pinned launcher still probes
 for Python 3.9+; that discovery threshold is not this tool's support policy.
 Launcher failures (no Python 3.9+, spawn error, signal) exit 2.
 
@@ -298,6 +299,27 @@ and compact evidence are not added to Pages. Docs-only runs skip collection.
 The collector requires the exact four matrix report paths (Python 3.11–3.14). Keep this set aligned
 with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 
+## 🎞️ Browser evidence
+
+![ASCII output, diagnostics and light/dark card flows at 1280 and 320 px in Chromium](docs/evidence/browser.gif)
+
+🗓️ 2026-11-07 · 🧭 Chromium 153 · 🐧 Linux · receipt [`docs/evidence/browser.json`](docs/evidence/browser.json)
+
+| 🧪 Suite | Result |
+| --- | --- |
+| `tests/test_capture_pages.py` | ✅ 10 |
+| `tests.test_ascii_artist_repository_diagnostics` | ✅ |
+| `scripts/capture_pages.py` + `check_capture_evidence.py` | ✅ 6 captures |
+| 🎞️ evidence GIF shots | ✅ 7 |
+
+🚫 Firefox / WebKit not installed here.
+
+🔁 Re-record (after the Pages build and `capture_pages.py`; the evidence and diagnostics pages are built with PySaiyanWeBoo's `web_ui` and embed their CSS, nothing is fetched from a CDN):
+
+```sh
+uv run --project ../BrowserTestKit --group pages --group browser python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve _site --plan docs/evidence/browser.json
+```
+
 ## Shared screenshot evidence
 
 The Pages build now renders actual `branch()` and `get_template()` output through
@@ -305,7 +327,8 @@ The Pages build now renders actual `branch()` and `get_template()` output throug
 The Chromium desktop lane asserts exact preformatted output, viewport bounds,
 computed dark-text/grey-background colors, and canonical repository/commit/time in the existing diagnostics page before
 capturing `ascii-output.png` and `repository-diagnostics.png`. Shared CSS/JS are
-served from a separately pinned PySaiyanWeBoo checkout, so capture does not depend on a CDN.
+embedded from the PySaiyanWeBoo git dependency pinned in the `dev` group (the diagnostics
+page is `web_ui.repository_diagnostics_page`), so no page fetches anything from a CDN.
 
 The multi-image receipt records stage, checkout SHA, canonical timestamps, hashes,
 browser/version, viewport and CI run/attempt. BrowserTestKit is pinned to

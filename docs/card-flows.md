@@ -19,8 +19,8 @@ changed = patch_flow(spec, [{"path": "/steps/0/note", "value": "Passed"}])
 
 All strings are built in memory by Python. No asset reads, browser runtime,
 third-party package, Rust runtime, native Node implementation, or JavaScript is
-needed. The existing `ascii_artist.cjs` forwards CLI arguments to Python; it is
-not a second implementation. Existing ASCII/DAG APIs remain separate.
+needed. The shared `vendor/py_launch.cjs` forwards CLI arguments to Python; there is
+no second implementation. Existing ASCII/DAG APIs remain separate.
 
 ## CLI and optional disk output
 
@@ -29,7 +29,7 @@ python -S ascii_artist.py flow-cards < examples/pr-flow.json > flow.html
 python -S ascii_artist.py flow-cards --format fragment < examples/pr-flow.json
 python -S ascii_artist.py flow-cards --format mermaid < examples/pr-flow.json
 printf '%s' '{"spec":{"title":"Build","sources":[{"title":"Code"}],"steps":[{"title":"Test"}]},"patch":[{"path":"/title","value":"CI"}]}' | python -S ascii_artist.py flow-patch --pretty
-node ascii_artist.cjs flow-cards --format mermaid < examples/pr-flow.json
+node vendor/py_launch.cjs --env-var ASCII_ARTIST_PYTHON -- ascii_artist.py flow-cards --format mermaid < examples/pr-flow.json
 ```
 
 The Node entry requires Node 26+ and Python; `ASCII_ARTIST_PYTHON` optionally

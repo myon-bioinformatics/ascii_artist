@@ -1,17 +1,17 @@
 """Capture asserted ASCII output and canonical diagnostics with Chromium.
 
 Browser dependencies belong to this CI tool, never to ascii_artist.py.
-Shared web-ui assets are served from a separately pinned checkout for offline CI.
+The shared CSS is embedded from the pinned PySaiyanWeBoo dependency, so no asset is fetched.
 """
 from __future__ import annotations
 
-import argparse, hashlib, json, os, shutil, sys
+import argparse, hashlib, html, json, os, shutil, sys
 from functools import partial; from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer; from pathlib import Path; from threading import Thread
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import ascii_artist as art
-from scripts.ascii_artist_repository_diagnostics import WEB_UI_BASE, write_favicon
+from scripts.ascii_artist_repository_diagnostics import write_favicon
 
 
 def sample_output() -> str:
@@ -19,14 +19,20 @@ def sample_output() -> str:
 
 
 def write_sample(site: Path) -> str:
+    """The evidence page: ascii_artist's own semantic HTML (stdlib-only library, CSS consumer-owned) inside
+    PySaiyanWeBoo's page shell, so the page is self-contained and styled like the other repositories'."""
     write_favicon(site)
     output = sample_output()
-    document = art.to_web_ui_v1_html(output, title="ASCII output evidence")
-    links = "\n".join(f'<link rel="stylesheet" href="{WEB_UI_BASE}/css/{name}.css">'
-                      for name in ("tokens", "base", "components", "themes/modern"))
-    links += '\n<link rel="icon" type="image/png" href="./favicon.png">'
-    links += '\n<link rel="apple-touch-icon" href="./icon.png">'
-    (site / "ascii-output.html").write_text(document.replace("</head>", links + "</head>").replace('<h1', '<img src="./icon.png" width="80" height="80" alt="ascii_artist icon"><h1', 1), encoding="utf-8")
+    import web_ui  # the pinned git dependency in the dev group
+
+    body = (
+        '<main class="ui-page"><img src="./icon.png" width="80" height="80" alt="ascii_artist icon">'
+        '<h1 class="ui-title">ASCII output evidence</h1>'
+        f'<section class="ui-panel"><pre class="ui-output">{html.escape(output)}</pre></section></main>'
+    )
+    page = web_ui.render_document(trusted_html=body, title="ASCII output evidence", css=web_ui.core_css(),
+                                  favicon="./favicon.png", touch_icon="./icon.png")
+    (site / "ascii-output.html").write_text(page, encoding="utf-8")
     return output
 
 
@@ -98,7 +104,7 @@ def assert_in_view(locator, page) -> None:
     assert box["y"] + box["height"] <= viewport["height"]
 
 
-def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
+def capture(site: Path, results: Path, expected_sha: str) -> None:
     from playwright.sync_api import expect, sync_playwright
 
     # Do not let a previous attempt's complete receipt satisfy current coverage.
@@ -126,12 +132,6 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
             context.tracing.start(screenshots=True, snapshots=True, sources=True)
             page = context.new_page()
             receipt["browser_version"] = browser.version
-            def asset(route):
-                relative = route.request.url.removeprefix(WEB_UI_BASE + "/")
-                target = (web_ui / relative).resolve()
-                target.relative_to(web_ui.resolve())
-                route.fulfill(path=target)
-            page.route(WEB_UI_BASE + "/**", asset)
             try:
                 base = f"http://127.0.0.1:{server.server_port}"
                 page.goto(base + "/ascii-output.html")
@@ -184,11 +184,15 @@ def capture(site: Path, results: Path, web_ui: Path, expected_sha: str) -> None:
         thread.join()
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", type=Path, default=ROOT / "_site")
     parser.add_argument("--results", type=Path, default=ROOT / "test-results/pages")
-    parser.add_argument("--web-ui", type=Path, required=True)
     parser.add_argument("--sha", required=True)
-    args = parser.parse_args()
-    capture(args.site.resolve(), args.results.resolve(), args.web_ui.resolve(), args.sha)
+    args = parser.parse_args(argv)
+    capture(args.site.resolve(), args.results.resolve(), args.sha)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

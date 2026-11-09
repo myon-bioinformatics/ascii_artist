@@ -73,21 +73,18 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             diagnostics.write_outputs(out, probe=False)
             self.assertEqual((out / "favicon.png").read_bytes(), source)
 
-    def test_page_uses_pinned_renderer(self):
+    def test_page_is_the_shared_self_contained_renderer(self):
         html = diagnostics.page_html()
-        self.assertIn(diagnostics.WEB_UI_SHA, html)
-        self.assertIn("RepositoryDiagnostics.render(payload.metadata)", html)
-        self.assertNotIn("__REPO__", html)
-        self.assertNotIn("__BASE__", html)
+        self.assertIn("<title>myon-bioinformatics/ascii_artist repository diagnostics</title>", html)
+        self.assertNotIn("cdn.jsdelivr.net", html)
+        self.assertNotIn('<link rel="stylesheet"', html)
+        self.assertIn("/* css/repository-diagnostics.css */", html)
+        self.assertIn("global.RepositoryDiagnostics = api", html)
+        self.assertIn('RepositoryDiagnostics.mount(document, "./repository-diagnostics.json");', html)
 
-    def test_page_escapes_template_constants(self):
-        with mock.patch.object(diagnostics, "REPOSITORY", '<repo & "quoted">'), mock.patch.object(
-            diagnostics, "WEB_UI_BASE", 'https://example.test/a?x=1&y="2"'
-        ):
-            html = diagnostics.page_html()
-        self.assertIn('&lt;repo &amp; &quot;quoted&quot;&gt;', html)
-        self.assertIn('https://example.test/a?x=1&amp;y=&quot;2&quot;', html)
-        self.assertNotIn('<repo & "quoted">', html)
+    def test_page_rejects_a_repository_name_that_is_not_owner_slash_name(self):
+        with mock.patch.object(diagnostics, "REPOSITORY", '<repo & "quoted">'), self.assertRaises(ValueError):
+            diagnostics.page_html()
 
     def test_generator_uses_gh_identity_without_sys_path_mutation(self):
         ghi = diagnostics.GH_IDENTITY
