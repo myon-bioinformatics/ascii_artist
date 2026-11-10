@@ -44,7 +44,7 @@ class CiPythonSetupTests(unittest.TestCase):
         self.assertEqual(project["project"]["requires-python"], ">=3.11")
         self.assertEqual(lock["requires-python"], project["project"]["requires-python"])
         self.assertEqual(project["project"]["dependencies"], [])
-        self.assertFalse(project["tool"]["uv"]["package"])
+        self.assertIsNot(project["tool"]["uv"].get("package"), False)
         self.assertEqual(project["tool"]["uv"]["dependency-groups"]["dev"]["requires-python"], ">=3.11")
 
     def test_supported_runtime_versions_keep_existing_os_coverage(self):

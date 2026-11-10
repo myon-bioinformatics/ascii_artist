@@ -386,3 +386,24 @@ needed. See [card-flow API, migration and tests](docs/card-flows.md).
 See [standard-library discovery commands](docs/unittest-discovery.md) for
 validated `python -S -m unittest discover` recipes, filename/name filtering,
 and the boundary with the full pytest suite.
+
+
+## uv: install the single-file command
+
+Runtime dependencies remain empty. From this repository root:
+
+```sh
+uv tool install .
+ascii_artist --help
+```
+
+Or use it once without registering a persistent command:
+
+```sh
+uvx --from 'git+https://github.com/myon-bioinformatics/ascii_artist.git@main' ascii_artist --help
+```
+
+For Python imports in another project, use `uv add /absolute/path/to/ascii_artist` and
+`uv run python -c 'import ascii_artist'`. `uv tool install` uses a separate environment.
+Use a reviewed full commit SHA instead of `main` when reproducibility is required.
+Only `ascii_artist.py` is installed; development dependency groups are not runtime requirements.
