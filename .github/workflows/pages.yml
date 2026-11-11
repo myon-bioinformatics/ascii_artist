@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/brand/**"
+      - "docs/guide.page.json"
       - "scripts/ascii_artist_repository_diagnostics.py"
       - "scripts/capture_pages.py"
       - "ascii_artist.py"
@@ -17,6 +18,7 @@ on:
   pull_request:
     paths:
       - "docs/brand/**"
+      - "docs/guide.page.json"
       - "scripts/ascii_artist_repository_diagnostics.py"
       - "scripts/capture_pages.py"
       - "ascii_artist.py"
@@ -96,7 +98,8 @@ jobs:
         run: |
           mkdir -p _site
           python scripts/ascii_artist_repository_diagnostics.py _site
-          cp _site/repository-diagnostics.html _site/index.html
+          # The front page is the usage guide: a web-ui-page/1 spec (data only) rendered by the pinned PySaiyanWeBoo.
+          python -m web_ui --page docs/guide.page.json > _site/index.html
       - name: Assert ASCII, card flows and diagnostics, then capture
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}

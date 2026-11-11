@@ -1,0 +1,119 @@
+{
+  "schema": "web-ui-page/1",
+  "title": "ascii_artist 利用ガイド",
+  "theme": "auto",
+  "description": "テキストアートの生成と、テキスト図の変換（標準ライブラリのみ）。",
+  "icon": "./icon.png",
+  "favicon": "./favicon.png",
+  "blocks": [
+    {
+      "type": "badges",
+      "items": [
+        "📄 単一ファイル",
+        "🧰 標準ライブラリのみ",
+        "🐍 Python 3.11+"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "📥 取得",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "1 ファイルを置くだけで動きます（pip 不要）。"
+        },
+        {
+          "type": "output",
+          "text": "curl -fsSLO https://raw.githubusercontent.com/myon-bioinformatics/ascii_artist/main/ascii_artist.py"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "▶️ 実行",
+      "blocks": [
+        {
+          "type": "card",
+          "title": "🔲 枠で囲む",
+          "text": "ファイル、または標準入力の文字を枠で囲みます。",
+          "blocks": [
+            {
+              "type": "output",
+              "text": "$ echo hello | python ascii_artist.py box -\n┌───────┐\n│ hello │\n└───────┘"
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "title": "🌳 ツリー",
+          "text": "ROOT の子として並べます。",
+          "blocks": [
+            {
+              "type": "output",
+              "text": "$ python ascii_artist.py tree root a b\nroot\n├─→ a\n└─→ b"
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "title": "⬇️ フロー",
+          "text": "縦の流れ図にします。",
+          "blocks": [
+            {
+              "type": "output",
+              "text": "$ python ascii_artist.py flow a b c\na\n ↓\nb\n ↓\nc"
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "title": "🧩 テンプレート",
+          "text": "組み込みの名前を一覧します（template NAME で表示）。",
+          "blocks": [
+            {
+              "type": "output",
+              "text": "$ python ascii_artist.py templates\ncat\nheart\nicon_ironmate\nironmate\ntree\nwelcome"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "🐍 Python から呼ぶ",
+      "blocks": [
+        {
+          "type": "output",
+          "text": "$ python -c 'import ascii_artist; print(ascii_artist.generate_box(\"hi\"))'\n┌────┐\n│ hi │\n└────┘"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "🔗 リンク",
+      "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "📦 リポジトリ",
+              "href": "https://github.com/myon-bioinformatics/ascii_artist"
+            },
+            {
+              "label": "📖 README",
+              "href": "https://github.com/myon-bioinformatics/ascii_artist#readme"
+            },
+            {
+              "label": "📄 ascii_artist.py",
+              "href": "https://github.com/myon-bioinformatics/ascii_artist/blob/main/ascii_artist.py"
+            },
+            {
+              "label": "🩺 診断",
+              "href": "./repository-diagnostics.html"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

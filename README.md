@@ -11,6 +11,8 @@
 Documentation-only changes use the shared change detector and skip the multi-version Python test matrix; code and workflow changes still run the full matrix.
 Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows.
 
+📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/ascii_artist/) (GitHub Pages)
+
 ## Purpose
 
 `ascii_artist` is the standalone home for ASCII-art helpers originally embedded in Ironmate. The repository is intended to evolve independently while remaining easy to vendor into applications that want a pinned, inspectable copy.
