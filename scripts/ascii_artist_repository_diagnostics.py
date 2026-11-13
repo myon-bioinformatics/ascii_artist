@@ -84,9 +84,9 @@ def build_payload(record: dict[str, Any], *, probe: bool = True) -> dict[str, An
 
 def page_html() -> str:
     """The shared diagnostics page from PySaiyanWeBoo (bundled CSS and renderer embedded, nothing from a CDN)."""
-    import web_ui  # the pinned git dependency in the dev group
+    import pysaiyanweboo  # the pinned git dependency in the dev group
 
-    return web_ui.repository_diagnostics_page(REPOSITORY)
+    return pysaiyanweboo.repository_diagnostics_page(REPOSITORY)
 
 
 def write_favicon(out_dir: Path) -> None:

@@ -23,15 +23,15 @@ def write_sample(site: Path) -> str:
     PySaiyanWeBoo's page shell, so the page is self-contained and styled like the other repositories'."""
     write_favicon(site)
     output = sample_output()
-    import web_ui  # the pinned git dependency in the dev group
+    import pysaiyanweboo  # the pinned git dependency in the dev group
 
     body = (
         '<main class="ui-page"><img src="./icon.png" width="80" height="80" alt="ascii_artist icon">'
         '<h1 class="ui-title">ASCII output evidence</h1>'
         f'<section class="ui-panel"><pre class="ui-output">{html.escape(output)}</pre></section></main>'
     )
-    page = web_ui.render_document(trusted_html=body, title="ASCII output evidence", css=web_ui.core_css(),
-                                  favicon="./favicon.png", touch_icon="./icon.png")
+    page = pysaiyanweboo.render_document(trusted_html=body, title="ASCII output evidence", css=pysaiyanweboo.core_css(),
+                                         favicon="./favicon.png", touch_icon="./icon.png")
     (site / "ascii-output.html").write_text(page, encoding="utf-8")
     return output
 
