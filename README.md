@@ -316,7 +316,7 @@ with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 
 🚫 Firefox / WebKit not installed here.
 
-🔁 Re-record (after the Pages build and `capture_pages.py`; the evidence and diagnostics pages are built with PySaiyanWeBoo's `web_ui` and embed their CSS, nothing is fetched from a CDN):
+🔁 Re-record (after the Pages build and `capture_pages.py`; the evidence and diagnostics pages are built with PySaiyanWeBoo's `pysaiyanweboo` and embed their CSS, nothing is fetched from a CDN):
 
 ```sh
 uv run --project ../BrowserTestKit --group pages --group browser python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve _site --plan docs/evidence/browser.json
@@ -330,7 +330,7 @@ The Chromium desktop lane asserts exact preformatted output, viewport bounds,
 computed dark-text/grey-background colors, and canonical repository/commit/time in the existing diagnostics page before
 capturing `ascii-output.png` and `repository-diagnostics.png`. Shared CSS/JS are
 embedded from the PySaiyanWeBoo git dependency pinned in the `dev` group (the diagnostics
-page is `web_ui.repository_diagnostics_page`), so no page fetches anything from a CDN.
+page is `pysaiyanweboo.repository_diagnostics_page`), so no page fetches anything from a CDN.
 
 The multi-image receipt records stage, checkout SHA, canonical timestamps, hashes,
 browser/version, viewport and CI run/attempt. BrowserTestKit is pinned to
