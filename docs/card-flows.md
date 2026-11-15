@@ -74,17 +74,17 @@ and `tests/flow-patch.node.cjs`. These sources are MIT licensed,
 Copyright (c) 2026 myon; the identical notice and permission terms are retained
 in this repository's `LICENSE`.
 
-The original Python cases are retained under their test filenames with import
-and CLI routes updated. The old native Node assertions are exercised through
+The original Python cases are retained in `tests/test_card_flows.py`
+(`FlowDiagramTests`, `FlowPatchTests`) with import and CLI routes updated. The old native Node assertions are exercised through
 the canonical Python API and existing thin Node CLI, including all fan-in
 edges, unknown properties, Unicode limits, atomic failures, malformed UTF-8,
-and byte budgets. `tests/test_flow_contract.py` additionally checks exact
+and byte budgets. `CardFlowContractTests` in the same file additionally checks exact
 budget boundaries, 64/65-operation limits, standalone isolated single-file
 execution, both palettes, and HTML/fragment/Mermaid adapter parity.
 
 ```sh
 # Node 26+ must be on PATH for adapter cases.
-python -S -m unittest discover -s tests -p 'test_flow*.py' -v
+python -S -m unittest discover -s tests -p test_card_flows.py -v
 ```
 
 This does not claim a cross-repository migration is already accepted. Consumers

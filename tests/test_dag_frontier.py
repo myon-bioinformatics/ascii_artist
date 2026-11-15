@@ -1,9 +1,14 @@
-"""Stdlib DAG frontier parity against the original full-scan layer definition."""
-import random, sys, unittest
+"""📈 DAG frontier: stdlib layering parity against the original full-scan definition, and the benchmark guard.
+
+The benchmark parity checks must run even with Python optimization enabled (``vendor/fleet_check.run_main``).
+"""
+import json, random, sys, unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 import ascii_artist as art
+from vendor import fleet_check as fleet
 
 
 def reference(value):
@@ -45,6 +50,36 @@ class FrontierTests(unittest.TestCase):
                            (['a','b'], [('a','b'),('b','a')])):
             with self.assertRaises(ValueError):
                 art.diagram(ids, edges)
+
+
+class BenchmarkParityTests(unittest.TestCase):
+    def run_benchmark(self, optimized, mismatch):
+        patch = (
+            "g['subprocess'].check_output = lambda *a, **kw: "
+            "b'def diagram(*args): return None\\ndef _topological_layers(value): return [[\"expected\"]]\\n'\n"
+            f"g['current']._topological_layers = lambda value: {([] if mismatch else [['expected']])!r}\n"
+        )
+        return fleet.run_main(ROOT, "scripts/benchmark_dag_frontier.py", patch, optimized=optimized, timeout=30)
+
+    def test_mismatch_exits_without_publishing_measurements(self):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_benchmark(optimized, mismatch=True)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("DAG layering parity mismatch: current", result.stderr)
+                self.assertIn("nodes=256, shape=chain, repetition=0", result.stderr)
+
+    def test_matching_results_still_publish_measurements(self):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_benchmark(optimized, mismatch=False)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                report = json.loads(result.stdout)
+                self.assertEqual(len(report["records"]), 4)
+                for record in report["records"]:
+                    for samples in record["samples_ns"].values():
+                        self.assertEqual(len(samples), 7)
 
 
 if __name__ == '__main__':

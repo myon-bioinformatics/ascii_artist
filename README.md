@@ -201,7 +201,7 @@ blob SHA and SHA-256 provenance in `vendor/`. Refresh the pair from the same
 explicit commit and update its provenance together; never refresh from moving
 `main`. Checkout HEAD owns commit identity; GitHub ref variables only provide
 branch context. Tracked-byte measurement, Python tooling, resolver evidence and
-Pages presentation remain local. Run `python -S -m unittest discover -s tests -p test_ascii_artist_repository_diagnostics.py -v`
+Pages presentation remain local. Run `uv run --locked python -m pytest -q tests/test_tooling.py -k RepositoryDiagnostics`
 after refresh. Artifact-header provenance is a separate contract.
 
 ## Command line
@@ -282,7 +282,7 @@ by the public resolver.
 
 ## Test-only JUnit collection
 
-Install test dependencies from `tests/requirements.txt`; runtime distribution
+Install test dependencies from the `dev` dependency group (`uv sync`); runtime distribution
 remains the single stdlib-only `ascii_artist.py`. The importer contract tests
 require a verified `xprobe.py` from commit
 `7e7015b2df69ad446b968f6fa49711b5b1dbdd3f` (Git blob
@@ -309,8 +309,8 @@ with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 
 | 🧪 Suite | Result |
 | --- | --- |
-| `tests/test_capture_pages.py` | ✅ 10 |
-| `tests.test_ascii_artist_repository_diagnostics` | ✅ |
+| `tests/test_tooling.py` 📸 capture | ✅ 10 |
+| `tests/test_tooling.py` 🩺 diagnostics | ✅ |
 | `scripts/capture_pages.py` + `check_capture_evidence.py` | ✅ 6 captures |
 | 🎞️ evidence GIF shots | ✅ 7 |
 
@@ -363,7 +363,7 @@ python -S -m unittest discover -s tests -p test_ascii_artist.py -v
 `pyproject.toml` is the canonical Python requirement and development dependency
 definition: `project.requires-python = ">=3.11"` applies to source runtime support
 as well as development. The runtime has no third-party dependencies, and
-`tests/requirements.txt` lists only the test-only tools. A copied `.py` file does
+the `dev` dependency group in `pyproject.toml` lists the test-only tools. A copied `.py` file does
 not read project metadata; consumers must select Python 3.11+ themselves. This
 policy does not update consumers' vendored files or interpreter settings. The
 shared Node launcher and its vendor pin remain unchanged.
