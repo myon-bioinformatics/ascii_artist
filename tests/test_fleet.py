@@ -1,0 +1,172 @@
+"""Fleet contracts through the parent's shared checks (vendor/fleet_check.py): locks, pins, CI setup, benchmark, Node entry."""
+import json, re, tomllib
+
+import pytest
+
+from vendor import fleet_check as fleet
+
+ROOT = fleet.repo_root(__file__)
+PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
+# Node sources and the shared checks stay on accepted upstream commits with exact bytes.
+ACCEPTED = {
+    "vendor/py_launch.cjs": "384f5dd532076062f7833038764e9a62322c387c",
+    "vendor/fleet_check.py": "45ed741f7e1f60179934cee6fa1e16a887f97cb0",
+}
+SETUP_UV = "astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2"
+JOBS = {
+    ("ci.yml", "resolve-vendor"): "3.15",
+    ("ci.yml", "test"): "${{ matrix.python-version }}",
+    ("ci.yml", "vendor-locked"): "${{ matrix.python-version }}",
+    ("pages.yml", "checks"): "3.15",
+    ("pages.yml", "build"): "3.15",
+    ("runtime-compatibility.yml", "runtime"): "${{ matrix.python }}",
+    ("runtime-compatibility.yml", "portability"): "3.11",
+}
+EXPECTED_REPORTS = [f"junit-py3.{v}/pytest-3.{v}.xml" for v in (11, 12, 13, 14)]
+TOOL, ENV_VAR = "ascii_artist.py", "ASCII_ARTIST_PYTHON"
+CASES = {
+    **{f"tree-invalid-{i}-{charset}": (["tree", "Root", "valid", item, "--charset", charset], "", 2)
+       for i, item in enumerate(["", "a\nb", "a\rb", "a\r\nb"]) for charset in ["unicode", "ascii"]},
+    "help": (["--help"], "", 0),
+    "square": (["square", "3", "--char", "ü"], "", 0),
+    "box-stdin": (["box", "--style", "rounded"], "こんにちは\nhi\n", 0),
+    "convert-render": (["convert", "--from", "outline", "--to", "render"], "# A\n## B\n", 0),
+    "no-command": ([], "", 2),
+    "bogus": (["--bogus"], "", 2),
+    "bad-input": (["convert", "--from", "json", "--to", "dot"], "{", 2),
+    "missing-file": (["box", "no-such-file.txt"], "", 1),
+}
+# Both primary CI jobs provision Node 26; runtime-compatibility jobs deliberately lack it and skip.
+needs_node = pytest.mark.skipif(fleet.node(ci_jobs=("test", "vendor-locked")) is None, reason="Node 26+ not available")
+
+
+def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
+    rows = fleet.check_lock(ROOT, commits=ACCEPTED)
+    launcher = rows["vendor/py_launch.cjs"]
+    assert (launcher["repository"], launcher["source"]) == (fleet.PARENT, "py_launch.cjs")
+
+
+def test_parent_workflow_references_use_reviewed_rollout_commit():
+    assert set(fleet.parent_refs(ROOT, skip=(".vendor-sync-tools",))) == {PARENT_WORKFLOW_PIN}
+
+
+def test_project_and_lock_declare_python311_without_runtime_dependencies():
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    assert project["project"]["requires-python"] == ">=3.11"
+    assert lock["requires-python"] == project["project"]["requires-python"]
+    assert project["project"]["dependencies"] == []
+    assert project["tool"]["uv"].get("package") is not False
+    assert project["tool"]["uv"]["dependency-groups"]["dev"]["requires-python"] == ">=3.11"
+
+
+def test_supported_runtime_versions_keep_existing_os_coverage():
+    block = fleet.workflow_job(ROOT, "runtime", "runtime-compatibility.yml")
+    matrix = re.search(r"(?ms)^      matrix:\n(.*?)(?=^    steps:)", block)
+    assert matrix is not None
+    assert matrix.group(1) == '''        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: windows-latest
+            python: "3.11"
+          - os: windows-latest
+            python: "3.14"
+          - os: macos-latest
+            python: "3.11"
+          - os: macos-latest
+            python: "3.14"
+'''
+    assert "runs-on: ${{ matrix.os }}" in block
+    assert "fail-fast: false" in block
+    assert "python -S -m unittest discover -s tests -p test_ascii_artist.py -v" in block
+    assert "continue-on-error" not in block
+
+
+@pytest.mark.parametrize("workflow,name", JOBS, ids=["/".join(key) for key in JOBS])
+def test_selected_python_is_ready_before_any_python_or_uv_command(workflow, name):
+    block = fleet.workflow_job(ROOT, name, workflow)
+    assert block.count("uses: " + SETUP_UV) == 1
+    setup = block.index("uses: " + SETUP_UV)
+    command = re.search(r"(?m)^\s*(?:-\s+)?(?:run:\s*)?(?:python(?:3)?|uv)\s+", block)
+    assert command is not None, "No interpreter consumer was checked"
+    assert setup < command.start(), "Python ran before setup-uv"
+    inputs = "\n".join(block[setup:].split("\n", 10)[:9])
+    assert 'version: "latest"' in inputs
+    assert f'python-version: "{JOBS[workflow, name]}"' in inputs
+    assert "activate-environment: true" in inputs
+    assert "enable-cache: true" in inputs
+    assert "save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}" in inputs  # only main writes
+    assert "prune-cache: true" in inputs
+
+
+def test_compatibility_matrix_and_required_report_identities_are_preserved():
+    text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert 'python-version: ["3.11", "3.12", "3.13", "3.14"]' in text
+    match = re.search(r"expected-reports: '([^']+)'", fleet.workflow_job(ROOT, "failure-identity"))
+    assert match is not None
+    assert json.loads(match.group(1)) == EXPECTED_REPORTS
+
+
+def test_locked_baseline_and_pages_venv_sync_are_preserved():
+    locked = fleet.workflow_job(ROOT, "vendor-locked")
+    assert re.search(r"python-version:\s*\n\s*- '3\.12'", locked)
+    assert "name: locked-junit-py${{ matrix.python-version }}" in locked
+    for name in ("checks", "build"):
+        block = fleet.workflow_job(ROOT, name, "pages.yml")
+        sync = "uv sync --locked --group dev --python \"$(python -c 'import sys; print(sys.executable)')\""
+        if name == "build":
+            sync = sync.replace("--group dev", "--group dev --group browser")
+        assert "uv pip install" not in block
+        path_export = "python -c \"import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))\" >> \"$GITHUB_PATH\""
+        assert sync in block and path_export in block
+        assert block.index(sync) < block.index(path_export)
+        assert "python -m pip" not in block
+    assert ".venv/bin/python -m playwright install" in fleet.workflow_job(ROOT, "build", "pages.yml")
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert project["dependency-groups"]["browser"] == ["playwright>=1.64.0"]
+    assert "if: github.ref == 'refs/heads/main'" in fleet.workflow_job(ROOT, "deploy", "pages.yml")
+
+
+def test_incorrect_layers_fail_without_success_json_under_optimization():
+    patch = """
+import ascii_artist
+reference = types.ModuleType('guard_reference')
+reference.diagram = ascii_artist.diagram
+reference._topological_layers = ascii_artist._topological_layers
+sys.modules['guard_reference'] = reference
+g['subprocess'].check_output = lambda *a, **kw: b'from guard_reference import diagram, _topological_layers'
+ascii_artist._topological_layers = lambda diagram: []
+"""
+    result = fleet.run_main(ROOT, "scripts/benchmark_dag_frontier.py", patch, optimized=True, timeout=30)
+    assert result.returncode != 0, result.stdout
+    assert "parity mismatch" in result.stderr
+    assert result.stdout == ""
+
+
+def test_ci_executes_node_parity_instead_of_skipping():
+    for job, step in (("test", "Require supported Node in parity CI"), ("vendor-locked", "Require supported Node in locked parity CI")):
+        block = fleet.workflow_job(ROOT, job)
+        assert "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1" in block
+        assert "node-version: '26'" in block
+        assert step in block
+
+
+def test_no_per_tool_wrapper_and_readme_documents_the_direct_command():
+    assert not (ROOT / "ascii_artist.cjs").exists()
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert f"node vendor/py_launch.cjs --env-var {ENV_VAR} -- {TOOL}" in readme
+    pkg = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+    assert pkg["engines"]["node"] == ">=26"
+
+
+@needs_node
+@pytest.mark.parametrize("args,stdin,expected_rc", CASES.values(), ids=CASES)
+def test_node_python_parity(args, stdin, expected_rc):
+    via_node, via_python = fleet.node_parity(ROOT, TOOL, ENV_VAR, *args, input=stdin)
+    assert via_python[0] == expected_rc
+    assert via_node == via_python
+
+
+@needs_node
+def test_vendored_launcher_keeps_its_contract():
+    fleet.launcher_contract(ROOT, ENV_VAR)
