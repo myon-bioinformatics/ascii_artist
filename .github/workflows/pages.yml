@@ -28,7 +28,6 @@ on:
       - "vendor.lock.json"
       - "tests/test_ascii_artist_repository_diagnostics.py"
       - ".github/workflows/pages.yml"
-  workflow_dispatch:
 
 permissions:
   contents: read
