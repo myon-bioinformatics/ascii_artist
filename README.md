@@ -201,7 +201,7 @@ blob SHA and SHA-256 provenance in `vendor/`. Refresh the pair from the same
 explicit commit and update its provenance together; never refresh from moving
 `main`. Checkout HEAD owns commit identity; GitHub ref variables only provide
 branch context. Tracked-byte measurement, Python tooling, resolver evidence and
-Pages presentation remain local. Run `python -S -m unittest discover -s tests -p test_ascii_artist_repository_diagnostics.py -v`
+Pages presentation remain local. Run `uv run --locked python -m pytest -q tests/test_tooling.py -k RepositoryDiagnostics`
 after refresh. Artifact-header provenance is a separate contract.
 
 ## Command line
@@ -309,8 +309,8 @@ with the Python matrix; a missing leg cannot be replaced by an extra XML report.
 
 | 🧪 Suite | Result |
 | --- | --- |
-| `tests/test_capture_pages.py` | ✅ 10 |
-| `tests.test_ascii_artist_repository_diagnostics` | ✅ |
+| `tests/test_tooling.py` 📸 capture | ✅ 10 |
+| `tests/test_tooling.py` 🩺 diagnostics | ✅ |
 | `scripts/capture_pages.py` + `check_capture_evidence.py` | ✅ 6 captures |
 | 🎞️ evidence GIF shots | ✅ 7 |
 

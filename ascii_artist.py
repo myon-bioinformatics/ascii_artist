@@ -736,8 +736,6 @@ _ASCII_TEMPLATES = {
     "tree": "    *\n   ***\n  *****\n *******\n    |\n",
 }
 
-_DEFAULT_ASCII_PROMPT = "Generate compact ASCII art that represents the user's request."
-_DEFAULT_MAX_WIDTH = 60
 _FENCE_LINE_RE = re.compile(r"^\s*(?:`{3,}|~{3,})(?:[A-Za-z0-9_.+-]+)?\s*$")
 _PREAMBLE_LINE_RE = re.compile(r"^\s*(?:here(?:\'s| is) your ascii art|ascii art)\s*:\s*$", re.IGNORECASE)
 _ROLE_LINE_RE = re.compile(r"^\s*(?:\[(?:system|user|assistant)\]|(?:system|user|assistant))\s*:?\s*$", re.IGNORECASE)
@@ -960,15 +958,12 @@ def render_prompt_ascii(
     A callable may return a string directly or an object with a string text
     attribute. This keeps the module independent from any specific LLM SDK.
     """
-    base_prompt = _DEFAULT_ASCII_PROMPT
-    max_width = _DEFAULT_MAX_WIDTH
-
     user_prompt = prompt.strip()
     final_prompt = (
-        f"{base_prompt}\n\n"
+        "Generate compact ASCII art that represents the user's request.\n\n"
         f"USER_REQUEST:\n{user_prompt}\n\n"
         f"CONSTRAINTS:\n"
-        f"- Keep width under {max_width} characters.\n"
+        "- Keep width under 60 characters.\n"
         f"- Return ASCII art only.\n"
         f"- No explanations.\n"
     )
@@ -991,10 +986,14 @@ _CLI_READERS: dict[str, Callable[[str], Diagram]] = {
 FLOW_MAX_INPUT = 256 * 1024
 FLOW_THEMES = ("modern", "github-like")
 
+def _has_control(text):
+    """C0 controls, DEL or unpaired surrogates: rejected in card labels and asset paths."""
+    return any(ord(char) < 32 or ord(char) == 127 or 0xD800 <= ord(char) <= 0xDFFF for char in text)
+
 def _flow_label(value, required=True, length=240):
     if not isinstance(value, str) or len(value) > length:
         raise ValueError("labels must be bounded strings")
-    if any(ord(char) < 32 or ord(char) == 127 or 0xD800 <= ord(char) <= 0xDFFF for char in value):
+    if _has_control(value):
         raise ValueError("control characters or unpaired surrogates in label")
     if required and not value.strip():
         raise ValueError("empty label")
@@ -1041,23 +1040,19 @@ def _mermaid_label(value):
                 "[": "#91;", "]": "#93;", "\\": "#92;", "\n": "#10;"}
     return "".join(entities.get(char, char) for char in value)
 
+def _card_mermaid(card):
+    label = _mermaid_label(card["title"])
+    return label + "<br/>" + _mermaid_label(card["note"]) if card["note"] else label
+
 def flow_mermaid(spec):
     """Render fenced Mermaid with generated IDs and entity-escaped labels."""
     data = validate_flow(spec)
     lines = ["```mermaid", "flowchart TB",
              '    subgraph input["' + _mermaid_label(data["sources_label"]) + '"]',
              "        direction LR"]
-    for i, card in enumerate(data["sources"]):
-        label = _mermaid_label(card["title"])
-        if card["note"]:
-            label += "<br/>" + _mermaid_label(card["note"])
-        lines.append(f'        S{i}["{label}"]')
+    lines += [f'        S{i}["{_card_mermaid(card)}"]' for i, card in enumerate(data["sources"])]
     lines.append("    end")
-    for i, card in enumerate(data["steps"]):
-        label = _mermaid_label(card["title"])
-        if card["note"]:
-            label += "<br/>" + _mermaid_label(card["note"])
-        lines.append(f'    T{i}["{label}"]')
+    lines += [f'    T{i}["{_card_mermaid(card)}"]' for i, card in enumerate(data["steps"])]
     for i in range(len(data["sources"])):
         lines.append(f"    S{i} --> T0")
     for i in range(1, len(data["steps"])):
@@ -1070,9 +1065,7 @@ def flow_document(spec, *, asset_base=".", theme="github-like", embed_css=True):
         raise ValueError("unknown theme")
     if not isinstance(asset_base, str) or not asset_base or any(
         c in asset_base for c in ('<', '>', '"', "'", "\\", "?", "#", "\n", "\r")
-    ) or ":" in asset_base or asset_base.startswith("//") or any(
-        ord(c) < 32 or ord(c) == 127 or 0xD800 <= ord(c) <= 0xDFFF for c in asset_base
-    ):
+    ) or ":" in asset_base or asset_base.startswith("//") or _has_control(asset_base):
         raise ValueError("asset_base must be a local path")
     if embed_css:
         css = "<style>" + flow_css(theme=theme) + "</style>"
@@ -1106,14 +1099,9 @@ FLOW_MAX_OPS = 64
 _FLOW_FIELDS = frozenset({"title", "note"})
 
 
-def _canonical_flow(spec):
-    """Validate and return a detached, JSON-serializable flow document."""
-    return validate_flow(spec)
-
-
 def patch_flow(spec, operations):
     """Apply a batch atomically; invalid operations never mutate caller state."""
-    result = _canonical_flow(spec)
+    result = validate_flow(spec)  # detached, JSON-serializable copy
     if not isinstance(operations, list) or len(operations) > FLOW_MAX_OPS:
         raise ValueError("patch must be an array with at most 64 operations")
     for operation in operations:
