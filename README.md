@@ -282,7 +282,7 @@ by the public resolver.
 
 ## Test-only JUnit collection
 
-Install test dependencies from `tests/requirements.txt`; runtime distribution
+Install test dependencies from the `dev` dependency group (`uv sync`); runtime distribution
 remains the single stdlib-only `ascii_artist.py`. The importer contract tests
 require a verified `xprobe.py` from commit
 `7e7015b2df69ad446b968f6fa49711b5b1dbdd3f` (Git blob
@@ -363,7 +363,7 @@ python -S -m unittest discover -s tests -p test_ascii_artist.py -v
 `pyproject.toml` is the canonical Python requirement and development dependency
 definition: `project.requires-python = ">=3.11"` applies to source runtime support
 as well as development. The runtime has no third-party dependencies, and
-`tests/requirements.txt` lists only the test-only tools. A copied `.py` file does
+the `dev` dependency group in `pyproject.toml` lists the test-only tools. A copied `.py` file does
 not read project metadata; consumers must select Python 3.11+ themselves. This
 policy does not update consumers' vendored files or interpreter settings. The
 shared Node launcher and its vendor pin remain unchanged.
