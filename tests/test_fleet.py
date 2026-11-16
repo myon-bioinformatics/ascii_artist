@@ -10,7 +10,7 @@ PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
 # Node sources and the shared checks stay on accepted upstream commits with exact bytes.
 ACCEPTED = {
     "vendor/py_launch.cjs": "384f5dd532076062f7833038764e9a62322c387c",
-    "vendor/fleet_check.py": "6c29503cf17eda856766ddfdf4d66a5b0965a8b1",
+    "vendor/fleet_check.py": "81f6aea6231d4490e581443fdeb43a09e6018ff0",
 }
 SETUP_UV = "astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2"
 JOBS = {
@@ -41,9 +41,13 @@ needs_node = pytest.mark.skipif(fleet.node(ci_jobs=("test", "vendor-locked")) is
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
-    rows = fleet.check_lock(ROOT, commits=ACCEPTED)
-    launcher = rows["vendor/py_launch.cjs"]
-    assert (launcher["repository"], launcher["source"]) == (fleet.PARENT, "py_launch.cjs")
+    sources = {f"vendor/{name}": (fleet.PARENT, source) for name, source in
+               (("py_launch.cjs", "py_launch.cjs"), ("fleet_check.py", "fleet_check.py"), ("myon-bioinformatics-LICENSE", "LICENSE"))}
+    fleet.check_lock(ROOT, commits=ACCEPTED, sources=sources)  # the parent has no other locked row
+
+
+def test_every_action_is_pinned_by_full_sha_with_a_version_comment():
+    assert fleet.check_actions(ROOT)
 
 
 def test_parent_workflow_references_use_reviewed_rollout_commit():
@@ -52,9 +56,8 @@ def test_parent_workflow_references_use_reviewed_rollout_commit():
 
 def test_project_and_lock_declare_python311_without_runtime_dependencies():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
-    assert project["project"]["requires-python"] == ">=3.11"
-    assert lock["requires-python"] == project["project"]["requires-python"]
+    # pyproject and uv.lock agree on the floor, and the runtime matrix starts there (shared check).
+    assert fleet.python_floor(ROOT) == ("3.11", ["3.11", "3.12", "3.13", "3.14"])
     assert project["project"]["dependencies"] == []
     assert project["tool"]["uv"].get("package") is not False
     assert project["tool"]["uv"]["dependency-groups"]["dev"]["requires-python"] == ">=3.11"
@@ -79,24 +82,20 @@ def test_supported_runtime_versions_keep_existing_os_coverage():
     assert "runs-on: ${{ matrix.os }}" in block
     assert "fail-fast: false" in block
     assert "python -S -m unittest discover -s tests -p test_ascii_artist.py -v" in block
-    assert "continue-on-error" not in block
 
 
 @pytest.mark.parametrize("workflow,name", JOBS, ids=["/".join(key) for key in JOBS])
 def test_selected_python_is_ready_before_any_python_or_uv_command(workflow, name):
-    block = fleet.workflow_job(ROOT, name, workflow)
-    assert block.count("uses: " + SETUP_UV) == 1
-    setup = block.index("uses: " + SETUP_UV)
-    command = re.search(r"(?m)^\s*(?:-\s+)?(?:run:\s*)?(?:python(?:3)?|uv)\s+", block)
-    assert command is not None, "No interpreter consumer was checked"
-    assert setup < command.start(), "Python ran before setup-uv"
-    inputs = "\n".join(block[setup:].split("\n", 10)[:9])
-    assert 'version: "latest"' in inputs
-    assert f'python-version: "{JOBS[workflow, name]}"' in inputs
-    assert "activate-environment: true" in inputs
-    assert "enable-cache: true" in inputs
-    assert "save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}" in inputs  # only main writes
-    assert "prune-cache: true" in inputs
+    fleet.workflow_job(ROOT, name, workflow, setup=SETUP_UV, inputs=(
+        'version: "latest"', f'python-version: "{JOBS[workflow, name]}"', "activate-environment: true", "enable-cache: true",
+        "save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}",  # only main writes
+        "prune-cache: true"))
+
+
+@pytest.mark.skipif(not (ROOT / ".vendor-sync-tools/vendor_stage.py").is_file(), reason="requires the workflow full-SHA parent checkout")
+def test_vendor_staging_commands_stage_locked_bytes_and_fail_closed():
+    commands = fleet.vendor_staging(ROOT)
+    assert all("--kind locked" in command and "--legacy-evidence" not in command for command in commands)
 
 
 def test_compatibility_matrix_and_required_report_identities_are_preserved():

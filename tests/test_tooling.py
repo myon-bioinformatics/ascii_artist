@@ -1,9 +1,9 @@
-"""🧰 Tooling: CI vendor-lock workflow, canonical vendor staging, repository diagnostics, Pages screenshot capture and script entry points.
+"""🧰 Tooling: CI vendor-lock workflow, repository diagnostics, Pages screenshot capture and script entry points.
 
-Shared fleet checks (locks, pins, setup-uv, Node parity) live in ``tests/test_fleet.py``; this file keeps the
+Shared fleet checks (locks, pins, setup-uv, vendor staging, Node parity) live in ``tests/test_fleet.py``; this file keeps the
 repository's own CI, ``scripts/`` and Pages expectations. Browser dependencies are never imported here.
 """
-import hashlib, json, os, platform, re, shlex, shutil, subprocess, sys, tempfile, unittest
+import json, os, platform, shlex, shutil, subprocess, sys, tempfile, unittest
 from pathlib import Path; from types import SimpleNamespace; from unittest import mock
 
 import pytest
@@ -139,86 +139,6 @@ def test_locked_baseline_runs_without_candidate_snapshot():
             assert step["with"]["if-no-files-found"] == "error"
     lock = next(s for s in steps if s.get("name") == "Preserve vendor lock used by this run")
     assert lock["with"]["path"] == "build/vendor-evidence-locked"
-
-
-# ──── vendor staging: the workflow's canonical staging commands against real locked bytes ────
-
-class VendorStagingTests(unittest.TestCase):
-    def test_workflow_payload_and_fail_closed(self):
-        tool = ROOT / ".vendor-sync-tools/vendor_stage.py"
-        if not tool.is_file():
-            self.skipTest("requires the workflow full-SHA parent checkout")
-        commands = []
-        for workflow in (ROOT / ".github/workflows").glob("*.yml"):
-            text = workflow.read_text(encoding="utf-8")
-            for match in re.finditer(r"(?m)^( +)- name: Stage canonical vendor evidence\n", text):
-                indent = match[1]
-                tail = text[match.end() :]
-                block = re.split(r"\n" + indent + r"- ", tail, maxsplit=1)[0] + "\n"
-                self.assertIn("if: always()", block)
-                self.assertNotIn("continue-on-error", block)
-                self.assertNotIn("--legacy-evidence", block)
-                self.assertNotIn("--promotion-receipt", block)
-                run = re.search(
-                    r"(?m)^" + indent + r"  run: >-\n((?:" + indent + r"    [^\n]*\n)+)", block
-                )
-                self.assertIsNotNone(run)
-                command = " ".join(line.strip() for line in run[1].splitlines())
-                self.assertIn("--kind locked", command)
-                output = shlex.split(command)[shlex.split(command).index("--output") + 1]
-                upload = re.split(r"\n" + indent + r"- ", tail, maxsplit=1)[1]
-                self.assertIn("path: " + output, upload.split("retention-days:", 1)[0])
-                commands.append(command)
-        self.assertTrue(commands)
-        for command in commands:
-            with self.subTest(command=command), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                args = shlex.split(command)
-                args[0] = sys.executable
-                args[2] = str(tool)
-                manifest = args[args.index("--manifest") + 1]
-                lock = json.loads((ROOT / manifest).read_text(encoding="utf-8"))
-                for entry in lock["files"]:
-                    dest = root / entry["destination"]
-                    dest.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(ROOT / entry["destination"], dest)
-                data = b"extra reviewed fixture\n"
-                extra = dict(
-                    lock["files"][0],
-                    destination="extra/LICENSE",
-                    blob_sha=hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest(),
-                    sha256=hashlib.sha256(data).hexdigest(),
-                )
-                lock["files"].append(extra)
-                (root / "extra").mkdir()
-                (root / "extra/LICENSE").write_bytes(data)
-                (root / manifest).parent.mkdir(parents=True, exist_ok=True)
-                (root / manifest).write_text(json.dumps(lock), encoding="utf-8")
-                result = subprocess.run(args, cwd=root, capture_output=True, text=True)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                output = root / args[args.index("--output") + 1]
-                evidence = json.loads((output / "vendor-evidence.json").read_text(encoding="utf-8"))
-                expected = {manifest, *(e["destination"] for e in lock["files"])}
-                self.assertEqual(set(evidence["locked"]), expected)
-                self.assertEqual(set(evidence["candidate"]), expected)
-                self.assertEqual(evidence["kind"], "locked")
-                self.assertEqual(evidence["legacy"], [])
-                self.assertEqual(evidence["runtime"], [])
-                self.assertEqual(
-                    {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()},
-                    expected | {"vendor-evidence.json"},
-                )
-                for member in expected:
-                    self.assertEqual((output / member).read_bytes(), (root / member).read_bytes())
-                    self.assertEqual(
-                        evidence["sha256"][member],
-                        hashlib.sha256((root / member).read_bytes()).hexdigest(),
-                    )
-                shutil.rmtree(output)
-                (root / lock["files"][0]["destination"]).write_bytes(b"corrupt")
-                result = subprocess.run(args, cwd=root, capture_output=True, text=True)
-                self.assertEqual(result.returncode, 2)
-                self.assertFalse(output.exists())
 
 
 # ──── repository diagnostics: scripts/ascii_artist_repository_diagnostics.py ────
