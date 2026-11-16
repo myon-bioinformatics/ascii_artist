@@ -144,10 +144,7 @@ ascii_artist._topological_layers = lambda diagram: []
 
 def test_ci_executes_node_parity_instead_of_skipping():
     for job, step in (("test", "Require supported Node in parity CI"), ("vendor-locked", "Require supported Node in locked parity CI")):
-        block = fleet.workflow_job(ROOT, job)
-        assert "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1" in block
-        assert "node-version: '26'" in block
-        assert step in block
+        assert step in fleet.workflow_job(ROOT, job, node_floor=26)  # Node 26 set up and the bash guard run (shared check)
 
 
 def test_no_per_tool_wrapper_and_readme_documents_the_direct_command():
