@@ -1,5 +1,5 @@
 """Fleet contracts through the parent's shared checks (vendor/fleet_check.py): locks, pins, CI setup, benchmark, Node entry."""
-import json, re, tomllib
+import json, os, re, tomllib
 
 import pytest
 
@@ -144,7 +144,8 @@ ascii_artist._topological_layers = lambda diagram: []
 
 def test_ci_executes_node_parity_instead_of_skipping():
     for job, step in (("test", "Require supported Node in parity CI"), ("vendor-locked", "Require supported Node in locked parity CI")):
-        assert step in fleet.workflow_job(ROOT, job, node_floor=26)  # Node 26 set up and the bash guard run (shared check)
+        # The guard is run in bash; on Windows a bare "bash" is the WSL launcher, so that lane checks the step only.
+        assert step in fleet.workflow_job(ROOT, job, node_floor=None if os.name == "nt" else 26)
 
 
 def test_no_per_tool_wrapper_and_readme_documents_the_direct_command():
