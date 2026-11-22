@@ -1,5 +1,6 @@
 # ascii_artist.py
 # metadata: __all__=39 | base_sha=7c21bacfac7b60327b77f9b31a87869ef7838a7e | updated_at=2026-09-23T05:39:43Z
+"""ASCII art generation, conversion, layout and text-based diagrams in one standard-library file."""
 
 __all__ = [
     "generate_square",
