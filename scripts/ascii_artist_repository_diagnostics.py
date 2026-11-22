@@ -1,7 +1,7 @@
 """Build canonical repository diagnostics JSON/JSONL/HTML for Pages."""
 from __future__ import annotations
 
-import importlib.util, json, os, platform, sys
+import argparse, importlib.util, json, os, platform, sys
 from pathlib import Path; from types import ModuleType; from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,9 +114,9 @@ def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:
 
 
 def main(argv=None):
-    argv = sys.argv[1:] if argv is None else list(argv)
-    target = Path(argv[0]) if len(argv) > 0 else ROOT / "_site"
-    write_outputs(target)
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("target", nargs="?", type=Path, default=ROOT / "_site", help="site directory to write into (default: _site)")
+    write_outputs(parser.parse_args(argv).target)
 
 
 if __name__ == "__main__":
