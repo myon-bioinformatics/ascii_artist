@@ -1,5 +1,5 @@
 """Fleet contracts through the parent's shared checks (vendor/fleet_check.py): locks, pins, CI setup, benchmark, Node entry."""
-import json, os, re, tomllib
+import hashlib, json, os, re, shutil, tomllib
 
 import pytest
 
@@ -40,10 +40,62 @@ CASES = {
 needs_node = pytest.mark.skipif(fleet.node(ci_jobs=("test", "vendor-locked")) is None, reason="Node 26+ not available")
 
 
+_PARENT_BINDINGS = {
+    "vendor/py_launch.cjs": (fleet.PARENT, "py_launch.cjs"),
+    "vendor/fleet_check.py": (fleet.PARENT, "fleet_check.py"),
+    "vendor/myon-bioinformatics-LICENSE": (fleet.PARENT, "LICENSE"),
+}
+
+
+def _check_vendor_bindings(root):
+    # The shared check validates every placed row. Its sources= argument instead
+    # freezes membership for each named upstream, which is not this contract.
+    entries = json.loads((root / "vendor.lock.json").read_text(encoding="utf-8"))["files"]
+    folded = {row["destination"].casefold() for row in entries}
+    assert len(folded) == len(entries), "duplicate vendor destination (case-insensitive)"
+    rows = fleet.check_lock(root, commits=ACCEPTED)
+    for where, origin in _PARENT_BINDINGS.items():
+        assert where in rows, f"missing vendor binding: {where}"
+        assert (rows[where]["repository"], rows[where]["source"]) == origin, where
+
+
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
-    sources = {f"vendor/{name}": (fleet.PARENT, source) for name, source in
-               (("py_launch.cjs", "py_launch.cjs"), ("fleet_check.py", "fleet_check.py"), ("myon-bioinformatics-LICENSE", "LICENSE"))}
-    fleet.check_lock(ROOT, commits=ACCEPTED, sources=sources)  # the parent has no other locked row
+    _check_vendor_bindings(ROOT)
+
+
+@pytest.mark.parametrize("variant", ["extra", "missing-license", "wrong-source", "duplicate", "case-collision", "wrong-bytes"])
+def test_vendor_binding_scope(tmp_path, variant):
+    shutil.copytree(ROOT / "vendor", tmp_path / "vendor")
+    lock = tmp_path / "vendor.lock.json"
+    data = json.loads((ROOT / "vendor.lock.json").read_text(encoding="utf-8"))
+    files = data["files"]
+    license_row = next(row for row in files if row["destination"] == "vendor/myon-bioinformatics-LICENSE")
+    if variant == "extra":
+        destination = "vendor/independent-helper.txt"
+        content = b"additional independently locked file"
+        (tmp_path / destination).write_bytes(content)
+        files.append({**license_row, "source": "docs/independent-helper.txt", "destination": destination,
+                      "blob_sha": hashlib.sha1(b"blob %d\0" % len(content) + content).hexdigest(),
+                      "sha256": hashlib.sha256(content).hexdigest()})
+    elif variant == "missing-license":
+        files.remove(license_row)
+    elif variant == "wrong-source":
+        license_row["source"] = "NOTICE"
+    elif variant == "duplicate":
+        files.append(dict(license_row))
+    elif variant == "case-collision":
+        files.append({**license_row, "destination": license_row["destination"].upper()})
+    elif variant == "wrong-bytes":
+        (tmp_path / license_row["destination"]).write_bytes(b"changed license")
+    lock.write_text(json.dumps(data), encoding="utf-8")
+    if variant == "extra":
+        _check_vendor_bindings(tmp_path)
+    elif variant in ("duplicate", "case-collision"):
+        with pytest.raises(AssertionError, match="duplicate vendor destination"):
+            _check_vendor_bindings(tmp_path)
+    else:
+        with pytest.raises(AssertionError):
+            _check_vendor_bindings(tmp_path)
 
 
 def test_every_action_is_pinned_by_full_sha_with_a_version_comment():
