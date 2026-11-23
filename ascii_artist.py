@@ -1204,25 +1204,25 @@ def _cli_parser() -> argparse.ArgumentParser:
         if name == "tree":
             sub.add_argument("root", metavar="ROOT", help="root label")
         sub.add_argument("items", nargs="+", metavar="ITEM", help="single-line label")
-        sub.add_argument("--charset", choices=("unicode", "ascii"), default="unicode")
+        sub.add_argument("--charset", choices=("unicode", "ascii"), default="unicode",help="box-drawing characters or plain ASCII (default: %(default)s)")
     template = commands.add_parser("template", help="print a built-in template", allow_abbrev=False)
     template.add_argument("name", metavar="NAME", help="template name (see: templates)")
     commands.add_parser("templates", help="list built-in template names", allow_abbrev=False)
     convert = commands.add_parser("convert", help="convert a text diagram", allow_abbrev=False)
     convert.add_argument("input", nargs="?", default="-", metavar="FILE",
                          help="UTF-8 diagram file; - or omitted reads stdin")
-    convert.add_argument("--from", dest="source_format", choices=sorted(_CLI_READERS), required=True)
+    convert.add_argument("--from", dest="source_format", choices=sorted(_CLI_READERS), required=True,help="input diagram format")
     convert.add_argument("--to", dest="target_format", required=True,
-                         choices=sorted([*_CLI_READERS, "render", "inventory"]))
+                         choices=sorted([*_CLI_READERS, "render", "inventory"]),help="output format; render draws it, inventory prints structural statistics")
     convert.add_argument("--charset", choices=("unicode", "ascii"), default="unicode",
                          help="charset for --to render (default: unicode)")
     cards = commands.add_parser("flow-cards", help="render bounded JSON cards from stdin", allow_abbrev=False)
-    cards.add_argument("--format", choices=("html", "fragment", "mermaid"), default="html")
-    cards.add_argument("--theme", choices=FLOW_THEMES, default="github-like")
-    cards.add_argument("--asset-base", default=".")
-    cards.add_argument("--no-embed-css", action="store_true")
+    cards.add_argument("--format", choices=("html", "fragment", "mermaid"), default="html",help="full page, HTML fragment, or Mermaid (default: %(default)s)")
+    cards.add_argument("--theme", choices=FLOW_THEMES, default="github-like",help="color theme (default: %(default)s)")
+    cards.add_argument("--asset-base", default=".",help="local path prefix for linked assets (default: %(default)s)")
+    cards.add_argument("--no-embed-css", action="store_true",help="link the stylesheet instead of embedding it")
     patch = commands.add_parser("flow-patch", help="atomically patch JSON cards from stdin", allow_abbrev=False)
-    patch.add_argument("--pretty", action="store_true")
+    patch.add_argument("--pretty", action="store_true",help="indent the patched JSON")
     for each in (parser, *commands.choices.values()):
         each.suggest_on_error = True  # 🤔 argparse 3.14+: "maybe you meant" for commands and choices; older Pythons ignore it
     return parser
