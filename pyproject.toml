@@ -15,7 +15,6 @@ dev = [
   # The shared diagnostics page and bundled CSS (pysaiyanweboo); move the pin with: uv lock --upgrade-package pysaiyanweboo
   "pysaiyanweboo @ git+https://github.com/myon-bioinformatics/PySaiyanWeBoo@bbe5c0b0087f40ff3fffd53bec5111c2ba2d747d",
 ]
-stdlib-test = ["pytest>=8", "pyyaml>=6"]
 
 # Only Pages capture installs browser tools; default sync keeps them out.
 browser = ["playwright>=1.64.0"]

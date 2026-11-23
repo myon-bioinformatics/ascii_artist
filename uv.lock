@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -20,13 +20,6 @@ dev = [
     { name = "pytest" },
     { name = "pyyaml" },
 ]
-stdlib-test = [
-    { name = "pytest" },
-    { name = "pyyaml" },
-]
-
-[package.group-requires-python]
-dev = ">=3.11"
 
 [package.metadata]
 
@@ -36,10 +29,6 @@ dev = [
     { name = "pysaiyanweboo", marker = "python_full_version >= '3.11'", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=bbe5c0b0087f40ff3fffd53bec5111c2ba2d747d" },
     { name = "pytest", marker = "python_full_version >= '3.11'", specifier = ">=9.1.1" },
     { name = "pyyaml", marker = "python_full_version >= '3.11'", specifier = ">=6.0.3" },
-]
-stdlib-test = [
-    { name = "pytest", specifier = ">=8" },
-    { name = "pyyaml", specifier = ">=6" },
 ]
 
 [[package]]
