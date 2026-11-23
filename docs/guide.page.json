@@ -7,6 +7,19 @@
   "favicon": "./favicon.png",
   "blocks": [
     {
+      "type": "links",
+      "items": [
+        {
+          "label": "🏠 ポートフォリオ",
+          "href": "https://myon-bioinformatics.github.io/"
+        },
+        {
+          "label": "🐙 GitHub リポジトリ",
+          "href": "https://github.com/myon-bioinformatics/ascii_artist"
+        }
+      ]
+    },
+    {
       "type": "badges",
       "items": [
         "📄 単一ファイル",
