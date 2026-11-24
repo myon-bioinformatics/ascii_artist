@@ -108,7 +108,29 @@
                   "blocks": [
                     {
                       "type": "output",
-                      "text": "$ python ascii_artist.py templates\ncat\nheart\nicon_ironmate\nironmate\ntree\nwelcome"
+                      "text": "$ python ascii_artist.py templates\ncat\ncoffee\ndog\nfish\nheart\nicon_ironmate\nironmate\nowl\nrocket\nstar\ntree\nwelcome"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "🔠 バナー文字",
+                  "text": "A-Z・0-9・一部の記号を 5 行の大きな文字で描きます。小文字は大文字で描き、それ以外の文字はエラーです（--fallback で代わりの文字を指定）。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py banner hi\n#   # ###\n#   #  #\n#####  #\n#   #  #\n#   # ###"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "📊 表",
+                  "text": "CSV/TSV を表にします。全角文字は 2 マスとして幅を揃えます（--align lr で列ごとに左・右寄せ）。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ printf '名前,値段\\nりんご,120\\n' | python ascii_artist.py table --align lr\n+--------+------+\n|  名前  | 値段 |\n+--------+------+\n| りんご |  120 |\n+--------+------+"
                     }
                   ]
                 }
