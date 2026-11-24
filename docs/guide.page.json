@@ -123,6 +123,50 @@
                   "text": "$ python -c 'import ascii_artist; print(ascii_artist.generate_box(\"hi\"))'\n┌────┐\n│ hi │\n└────┘"
                 }
               ]
+            },
+            {
+              "type": "section",
+              "title": "📦 枠の拡張と分岐",
+              "blocks": [
+                {
+                  "type": "text",
+                  "text": "box に --align（left/center/right、全角幅を考慮）、--padding N または H,V（N は従来どおり横方向のみ）、--title、--style heavy、--width（最小幅＋折り返し）、--shadow を足しました。branch は既存の branch() を呼びます。"
+                },
+                {
+                  "type": "card",
+                  "title": "🔲 枠のオプション",
+                  "text": "--style heavy と --title、縦横パディング、中央寄せ。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ printf hi | python ascii_artist.py box --style heavy --title Hi --padding 1,1 --align center --width 14\n┏━ Hi ━━━━━━━┓\n┃            ┃\n┃     hi     ┃\n┃            ┃\n┗━━━━━━━━━━━━┛"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf '日本\\nab' | python ascii_artist.py box --style ascii --padding 0 --align center\n+----+\n|日本|\n| ab |\n+----+"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf hello | python ascii_artist.py box --style ascii --padding 0 --width 4\n+--+\n|he|\n|ll|\n|o |\n+--+"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf Hi | python ascii_artist.py box --style ascii --padding 0 --shadow\n+--+#\n|Hi|#\n+--+#\n ####"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "🌿 分岐（branch）",
+                  "text": "ROOT から ITEM へ分岐し、--target を付けると再び合流します。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py branch root left right --target end\n    root\n      │\n  ┌───┼───┐\n  ↓       ↓\nleft    right\n  └───┴───┘\n      ↓\n     end"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }

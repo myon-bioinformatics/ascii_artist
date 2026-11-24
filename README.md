@@ -215,8 +215,9 @@ goes to stdout.
 
 ```text
 square SIZE | triangle HEIGHT | diamond HALF_HEIGHT   [--char TOKEN]
-box [FILE] [--padding N] [--style ascii|double|rounded|single]
+box [FILE] [--padding N|H,V] [--style ascii|double|heavy|rounded|single] [--align left|center|right] [--title TEXT] [--width N] [--shadow]
 flow ITEM... | tree ROOT ITEM...                      [--charset unicode|ascii]
+branch ROOT [ITEM ...] [--target TARGET] [--charset unicode|ascii]
 template NAME | templates
 convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|render|inventory [--charset ...] [--layout adjacency|layered]
 ```
