@@ -145,6 +145,27 @@ def test_table_cli_unreadable_file_exit_1(run, tmp_path):
     assert (rc, out) == (1, "") and "missing.csv" in err
 
 
+def test_documented_public_api_matches_all():
+    import json, re
+    guide = json.loads((ROOT / "docs" / "guide.page.json").read_text(encoding="utf-8"))
+    texts = []
+    stack = [guide]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+        elif isinstance(node, str) and node.startswith("公開 API（__all__）は次のとおりです。"):
+            texts.append(node)
+    assert len(texts) == 1
+    listed = texts[0].split("。")[1].split(" / ")
+    assert listed == list(aa.__all__)
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    section = readme.split("## Current API", 1)[1].split("\n## ", 1)[0]
+    assert sorted(re.findall(r"`([A-Za-z0-9_]+)(?:\(\))?`", section)) == sorted(aa.__all__)
+
+
 def test_public_api_unchanged():
     assert "main" not in aa.__all__
     # Existing exports remain; card-flow migration adds six APIs, banner/table add three.
