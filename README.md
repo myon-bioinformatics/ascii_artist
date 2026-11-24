@@ -125,13 +125,16 @@ d = diagram(
         ("mcpi", "Minecraft"),
     ],
 )
-print(render_diagram(d))
+print(render_diagram(d, layout="layered"))
 \`\`\`
 
-The design deliberately does **not** collapse all layouts into one
-\`_layout_everything()\` helper. Linear, branch, tree, and future layered-DAG
-layouts may remain separate while sharing the same IR and validation contract.
-
+By default, `render_diagram(d)` keeps the adjacency listing. Opt into
+`layout="layered"` to group nodes by topological layer. Each node is listed
+once, with a display reference based on its input position; the arrows under
+each layer refer to those numbers. This preserves edges across layers and
+distinguishes identical labels without drawing ambiguous crossing lines.
+Linear, branch, tree, and layered renderers share the same diagram validation
+without forcing their layouts into one implementation.
 
 ## Converter contracts
 
@@ -215,7 +218,7 @@ square SIZE | triangle HEIGHT | diamond HALF_HEIGHT   [--char TOKEN]
 box [FILE] [--padding N] [--style ascii|double|rounded|single]
 flow ITEM... | tree ROOT ITEM...                      [--charset unicode|ascii]
 template NAME | templates
-convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|render|inventory [--charset ...]
+convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|render|inventory [--charset ...] [--layout adjacency|layered]
 ```
 
 Exit codes: 0 success; 1 input file could not be read; 2 usage error or invalid
