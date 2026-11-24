@@ -10,7 +10,7 @@ ROOT = fleet.repo_root(__file__)
 PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
 # Node sources and the shared checks stay on accepted upstream commits with exact bytes.
 ACCEPTED = {
-    "vendor/py_launch.cjs": "384f5dd532076062f7833038764e9a62322c387c",
+    "vendor/py_launch.cjs": "de63762d8485e4d398a651715d34ebf4a04c23f2",
     "vendor/fleet_check.py": "bc57f08a590ee1cb33a8bb37c1bb3b8f28a2f3c9",
 }
 SETUP_UV = "astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2"
