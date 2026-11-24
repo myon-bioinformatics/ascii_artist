@@ -145,6 +145,16 @@ def test_table_cli_unreadable_file_exit_1(run, tmp_path):
     assert (rc, out) == (1, "") and "missing.csv" in err
 
 
+def test_table_cli_heavy_style(run):
+    expected = aa.render_table(
+        [["apple", "120"], ["kiwi", "3"]], headers=["name", "yen"], align="lr", style="heavy",
+    ) + "\n"
+    assert run(
+        ["table", "--style", "heavy", "--align", "lr"],
+        "name,yen\napple,120\nkiwi,3\n",
+    ) == (0, expected, "")
+
+
 def test_documented_public_api_matches_all():
     import json, re
     guide = json.loads((ROOT / "docs" / "guide.page.json").read_text(encoding="utf-8"))
@@ -414,8 +424,34 @@ def test_box_mutation_unmutated_passes(tmp_path):
 @pytest.mark.parametrize("old,new", [
     ("        return padding, 0", "        return padding, padding"),
     ("        return padding[0], padding[1]", "        return padding[1], padding[0]"),
-    ("        left = gap // 2", "        left = (gap + 1) // 2"),
-    ('        return " " * gap + text', '        return text + " " * gap'),
+    (
+        "def _pad_align(text: str, width: int, align: str) -> str:\n"
+        '    """Pad text to a display width with left, center, or right alignment."""\n'
+        "    gap = width - display_width(text)\n"
+        '    if align == "right":\n'
+        '        return " " * gap + text\n'
+        '    if align == "center":\n'
+        "        left = gap // 2",
+        "def _pad_align(text: str, width: int, align: str) -> str:\n"
+        '    """Pad text to a display width with left, center, or right alignment."""\n'
+        "    gap = width - display_width(text)\n"
+        '    if align == "right":\n'
+        '        return " " * gap + text\n'
+        '    if align == "center":\n'
+        "        left = (gap + 1) // 2",
+    ),
+    (
+        "def _pad_align(text: str, width: int, align: str) -> str:\n"
+        '    """Pad text to a display width with left, center, or right alignment."""\n'
+        "    gap = width - display_width(text)\n"
+        '    if align == "right":\n'
+        '        return " " * gap + text',
+        "def _pad_align(text: str, width: int, align: str) -> str:\n"
+        '    """Pad text to a display width with left, center, or right alignment."""\n'
+        "    gap = width - display_width(text)\n"
+        '    if align == "right":\n'
+        '        return text + " " * gap',
+    ),
     ('        "tl": "┏", "tr": "┓", "bl": "┗", "br": "┛", "h": "━", "v": "┃"',
      '        "tl": "┏", "tr": "┓", "bl": "┗", "br": "┛", "h": "━", "v": "│"'),
     ("        inner = max(inner, display_width(title) + 4)", "        inner = max(inner, display_width(title) + 0)"),
@@ -437,3 +473,86 @@ def test_box_mutation_unmutated_passes(tmp_path):
 ])
 def test_box_mutation_of_real_file_fails_check(tmp_path, old, new):
     assert _box_check(tmp_path, old, new) != 0
+
+
+TABLE_MERGE_CHECK = r"""
+# -*- coding: utf-8 -*-
+import argparse, importlib.util, os, subprocess, sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('ascii_artist', Path('ascii_artist.py'))
+aa = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(aa)
+ENV = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8'}
+
+def cli(*argv, stdin=''):
+    p = subprocess.run([sys.executable, '-S', 'ascii_artist.py', *argv], input=stdin,
+                       capture_output=True, text=True, encoding='utf-8', env=ENV)
+    return p.returncode, p.stdout, p.stderr
+
+heavy = (
+    '┏━━━━━━━┳━━━━━┓\n'
+    '┃ name  ┃ yen ┃\n'
+    '┣━━━━━━━╋━━━━━┫\n'
+    '┃ apple ┃ 120 ┃\n'
+    '┃ kiwi  ┃   3 ┃\n'
+    '┗━━━━━━━┻━━━━━┛'
+)
+ok = aa.render_table([['apple', 120], ['kiwi', 3]], headers=['name', 'yen'], align='lr', style='heavy') == heavy
+ok = ok and set(aa._BOX_STYLES) == set(aa._TABLE_JUNCTIONS)
+ok = ok and all(set(j) == {'t', 'm', 'b', 'l', 'r'} for j in aa._TABLE_JUNCTIONS.values())
+rc, out, err = cli('table', '--style', 'heavy', '--align', 'lr', stdin='name,yen\napple,120\nkiwi,3\n')
+ok = ok and (rc, out, err) == (0, heavy + '\n', '')
+rc, out, err = cli('table', '--format', 'tsv', '--align', 'lr', stdin='name\tyen\napple\t120\nkiwi\t3\n')
+ok = ok and rc == 0 and 'apple' in out and out.endswith('\n')
+ok = ok and aa._cli_padding('2,3') == (2, 3)
+rc, out, err = cli('box', '--padding', '1,1', '--style', 'ascii', stdin='Hi')
+ok = ok and (rc, out) == (0, aa.generate_box('Hi', padding=(1, 1), style='ascii') + '\n')
+sys.exit(0 if ok else 1)
+"""
+
+
+def _table_merge_check(tmp_path: Path, old: str | None = None, new: str = "") -> int:
+    text = (ROOT / "ascii_artist.py").read_text(encoding="utf-8")
+    if old is not None:
+        assert text.count(old) == 1, old
+        text = text.replace(old, new, 1)
+    (tmp_path / "ascii_artist.py").write_text(text, encoding="utf-8")
+    (tmp_path / "table_merge_check.py").write_text(TABLE_MERGE_CHECK, encoding="utf-8")
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+    result = subprocess.run(
+        [sys.executable, "table_merge_check.py"], cwd=tmp_path, timeout=120, env=env,
+        capture_output=True, text=True, encoding="utf-8",
+    )
+    if result.returncode != 0 and result.stderr:
+        print(result.stderr, file=sys.stderr)
+    return result.returncode
+
+
+def test_table_merge_mutation_unmutated_passes(tmp_path):
+    assert _table_merge_check(tmp_path) == 0
+
+
+@pytest.mark.parametrize("old,new", [
+    (
+        '    "heavy": {"t": "┳", "m": "╋", "b": "┻", "l": "┣", "r": "┫"},',
+        '    "heavy": {"t": "┳", "m": "┼", "b": "┻", "l": "┣", "r": "┫"},',
+    ),
+    (
+        "    box, junction = _BOX_STYLES[style], _TABLE_JUNCTIONS[style]",
+        '    box, junction = _BOX_STYLES[style], _TABLE_JUNCTIONS["ascii"]',
+    ),
+    (
+        "    return render_table(rows, headers=headers, style=args.style, align=args.align)",
+        '    return render_table(rows, headers=headers, style="ascii", align=args.align)',
+    ),
+    (
+        '    reader = csv.reader(_cli_read(args.input).splitlines(), delimiter="\\t" if args.table_format == "tsv" else ",")',
+        '    reader = csv.reader(_cli_read(args.input).splitlines(), delimiter=",")',
+    ),
+    (
+        '    box.add_argument("--padding", type=_cli_padding, default=1,',
+        '    box.add_argument("--padding", type=int, default=1,',
+    ),
+])
+def test_table_merge_mutation_of_real_file_fails_check(tmp_path, old, new):
+    assert _table_merge_check(tmp_path, old, new) != 0

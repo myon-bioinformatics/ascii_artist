@@ -217,7 +217,7 @@ $ python ascii_artist.py banner hi
 #   # ###
 ```
 
-`render_table(rows, *, headers=None, style="ascii", align=None, padding=1)` renders a bordered table in the `ascii`, `single`, `double` or `rounded` style. Cells go through `str()` (`None` becomes empty) and must be single-line; short rows are padded with empty cells. Column widths use `display_width`, so CJK wide characters count as two cells (best effort, like `generate_box`). `align` gives one `l`/`r`/`c` (or `left`/`right`/`center`) per column, for example `"lr"`; missing columns align left and headers are centered. No headers and no rows returns `""`.
+`render_table(rows, *, headers=None, style="ascii", align=None, padding=1)` renders a bordered table in the `ascii`, `double`, `heavy`, `rounded` or `single` style. Cells go through `str()` (`None` becomes empty) and must be single-line; short rows are padded with empty cells. Column widths use `display_width`, so CJK wide characters count as two cells (best effort, like `generate_box`). `align` gives one `l`/`r`/`c` (or `left`/`right`/`center`) per column, for example `"lr"`; missing columns align left and headers are centered. No headers and no rows returns `""`.
 
 ```text
 $ printf '名前,値段\nりんご,120\n' | python ascii_artist.py table --align lr
@@ -264,7 +264,7 @@ flow ITEM... | tree ROOT ITEM...                      [--charset unicode|ascii]
 branch ROOT [ITEM ...] [--target TARGET] [--charset unicode|ascii]
 template NAME | templates
 banner TEXT... [--char TOKEN] [--spacing N] [--fallback CHAR]
-table [FILE] [--format csv|tsv] [--no-header] [--style ascii|double|rounded|single] [--align SPEC]
+table [FILE] [--format csv|tsv] [--no-header] [--style ascii|double|heavy|rounded|single] [--align SPEC]
 convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|render|inventory [--charset ...] [--layout adjacency|layered]
 flow-cards [--format html|fragment|mermaid] [--theme modern|github-like] [--asset-base PATH] [--no-embed-css]
 flow-patch [--pretty]

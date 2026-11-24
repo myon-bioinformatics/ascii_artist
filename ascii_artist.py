@@ -1097,6 +1097,7 @@ _TABLE_JUNCTIONS = {
     "double": {"t": "╦", "m": "╬", "b": "╩", "l": "╠", "r": "╣"},
     "rounded": {"t": "┬", "m": "┼", "b": "┴", "l": "├", "r": "┤"},
     "ascii": {"t": "+", "m": "+", "b": "+", "l": "+", "r": "+"},
+    "heavy": {"t": "┳", "m": "╋", "b": "┻", "l": "┣", "r": "┫"},
 }
 _TABLE_ALIGN = {"l": "left", "r": "right", "c": "center", "left": "left", "right": "right", "center": "center"}
 
@@ -1122,7 +1123,7 @@ def render_table(
     rows: Iterable[Iterable[Any]],
     *,
     headers: Iterable[Any] | None = None,
-    style: Literal["single", "double", "rounded", "ascii"] = "ascii",
+    style: Literal["single", "double", "rounded", "ascii", "heavy"] = "ascii",
     align: str | Iterable[str] | None = None,
     padding: int = 1,
 ) -> str:

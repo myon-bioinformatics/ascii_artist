@@ -90,7 +90,7 @@
                 {
                   "type": "card",
                   "title": "🔲 枠で囲む",
-                  "text": "ファイル、または標準入力の文字を枠で囲みます。--style は ascii / double / rounded / single（省略時は single）、--padding は 0 以上の整数（省略時は 1）です。",
+                  "text": "ファイル、または標準入力の文字を枠で囲みます。--style は ascii / double / heavy / rounded / single（省略時は single）、--padding は N または H,V（N は従来どおり横方向のみ、省略時は 1）です。--align / --title / --width / --shadow は「枠の拡張と分岐」を参照。",
                   "blocks": [
                     {
                       "type": "output",
@@ -157,11 +157,15 @@
                 {
                   "type": "card",
                   "title": "📊 表",
-                  "text": "CSV/TSV を表にします。全角文字は 2 マスとして幅を揃えます（--align lr で列ごとに左・右寄せ）。",
+                  "text": "CSV/TSV を表にします。--style は ascii / double / heavy / rounded / single（省略時は ascii）。全角文字は 2 マスとして幅を揃えます（--align lr で列ごとに左・右寄せ）。",
                   "blocks": [
                     {
                       "type": "output",
                       "text": "$ printf '名前,値段\\nりんご,120\\n' | python ascii_artist.py table --align lr\n+--------+------+\n|  名前  | 値段 |\n+--------+------+\n| りんご |  120 |\n+--------+------+"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf 'name,yen\\napple,120\\nkiwi,3\\n' | python ascii_artist.py table --style heavy --align lr\n┏━━━━━━━┳━━━━━┓\n┃ name  ┃ yen ┃\n┣━━━━━━━╋━━━━━┫\n┃ apple ┃ 120 ┃\n┃ kiwi  ┃   3 ┃\n┗━━━━━━━┻━━━━━┛"
                     }
                   ]
                 },

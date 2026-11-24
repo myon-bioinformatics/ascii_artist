@@ -324,6 +324,30 @@ class AsciiArtistTests(unittest.TestCase):
         self.assertEqual(ascii_artist.render_table([]), "")
         self.assertEqual(ascii_artist.render_table([[]]), "")
 
+    def test_every_box_style_has_table_junctions(self):
+        self.assertEqual(set(ascii_artist._BOX_STYLES), set(ascii_artist._TABLE_JUNCTIONS))
+        required = {"t", "m", "b", "l", "r"}
+        for style, junction in ascii_artist._TABLE_JUNCTIONS.items():
+            self.assertEqual(set(junction), required, style)
+            self.assertTrue(all(isinstance(ch, str) and ch for ch in junction.values()), style)
+
+    def test_render_table_heavy_style(self):
+        self.assertEqual(
+            ascii_artist.render_table(
+                [["apple", 120], ["kiwi", 3]], headers=["name", "yen"], align="lr", style="heavy",
+            ),
+            "┏━━━━━━━┳━━━━━┓\n"
+            "┃ name  ┃ yen ┃\n"
+            "┣━━━━━━━╋━━━━━┫\n"
+            "┃ apple ┃ 120 ┃\n"
+            "┃ kiwi  ┃   3 ┃\n"
+            "┗━━━━━━━┻━━━━━┛",
+        )
+        self.assertEqual(
+            ascii_artist.render_table([["a", None], ["b"]], style="heavy", padding=0),
+            "┏━┳┓\n┃a┃┃\n┃b┃┃\n┗━┻┛",
+        )
+
     def test_render_table_rejects_invalid_input(self):
         cases = [
             (ValueError, ([["a\nb"]],), {}),
