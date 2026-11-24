@@ -70,34 +70,65 @@
               "blocks": [
                 {
                   "type": "card",
+                  "title": "⬛ 図形",
+                  "text": "square / triangle / diamond を描きます。引数はトークンの繰り返し回数で、--char の省略時は * です。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py square 3\n***\n***\n***"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py triangle 3\n*\n**\n***"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py diamond 3\n  *\n ***\n*****\n ***\n  *"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
                   "title": "🔲 枠で囲む",
-                  "text": "ファイル、または標準入力の文字を枠で囲みます。",
+                  "text": "ファイル、または標準入力の文字を枠で囲みます。--style は ascii / double / rounded / single（省略時は single）、--padding は 0 以上の整数（省略時は 1）です。",
                   "blocks": [
                     {
                       "type": "output",
                       "text": "$ echo hello | python ascii_artist.py box -\n┌───────┐\n│ hello │\n└───────┘"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ echo hi | python ascii_artist.py box --style double --padding 0 -\n╔══╗\n║hi║\n╚══╝"
                     }
                   ]
                 },
                 {
                   "type": "card",
                   "title": "🌳 ツリー",
-                  "text": "ROOT の子として並べます。",
+                  "text": "CLI の tree は ROOT の直下に ITEM を並べます（入れ子は Python の tree()）。--charset は unicode / ascii（省略時は unicode）です。",
                   "blocks": [
                     {
                       "type": "output",
                       "text": "$ python ascii_artist.py tree root a b\nroot\n├─→ a\n└─→ b"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py tree --charset ascii root a b\nroot\n+-> a\n\\-> b"
                     }
                   ]
                 },
                 {
                   "type": "card",
                   "title": "⬇️ フロー",
-                  "text": "縦の流れ図にします。",
+                  "text": "縦の流れ図にします。--charset は unicode / ascii（省略時は unicode）です。",
                   "blocks": [
                     {
                       "type": "output",
                       "text": "$ python ascii_artist.py flow a b c\na\n ↓\nb\n ↓\nc"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py flow --charset ascii a b c\na\n v\nb\n v\nc"
                     }
                   ]
                 },
@@ -133,6 +164,36 @@
                       "text": "$ printf '名前,値段\\nりんご,120\\n' | python ascii_artist.py table --align lr\n+--------+------+\n|  名前  | 値段 |\n+--------+------+\n| りんご |  120 |\n+--------+------+"
                     }
                   ]
+                },
+                {
+                  "type": "card",
+                  "title": "🔄 変換",
+                  "text": "図を Diagram IR 経由で変換します。--from は dot / json / mermaid / outline、--to は dot / inventory / json / mermaid / outline / render。--to render では --charset unicode|ascii と --layout adjacency|layered（省略時は adjacency）を指定できます。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ printf '# a\\n## b\\n' | python ascii_artist.py convert --from outline --to render -\na\n└─→ b\nb"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf '# a\\n## b\\n' | python ascii_artist.py convert --from outline --to render --layout layered -\nLayer 1\n  [1] a\n  [1] → [2]\n\nLayer 2\n  [2] b"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "🃏 カードフロー",
+                  "text": "標準入力の JSON カードを描画または更新します。flow-cards の --format は html / fragment / mermaid（省略時は html）、--theme は github-like / modern。flow-patch は {spec, patch} を原子的に適用し、--pretty でインデントします。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ printf '%s' '{\"title\":\"Build\",\"sources\":[{\"title\":\"Code\"}],\"steps\":[{\"title\":\"Test\"}]}' | python ascii_artist.py flow-cards --format mermaid\n```mermaid\nflowchart TB\n    subgraph input[\"Sources\"]\n        direction LR\n        S0[\"Code\"]\n    end\n    T0[\"Test\"]\n    S0 --> T0\n```"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf '%s' '{\"spec\":{\"title\":\"Build\",\"sources\":[{\"title\":\"Code\"}],\"steps\":[{\"title\":\"Test\"}]},\"patch\":[{\"path\":\"/title\",\"value\":\"CI\"}]}' | python ascii_artist.py flow-patch --pretty\n{\n  \"title\": \"CI\",\n  \"sources_label\": \"Sources\",\n  \"sources\": [\n    {\n      \"title\": \"Code\",\n      \"note\": \"\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"title\": \"Test\",\n      \"note\": \"\"\n    }\n  ]\n}"
+                    }
+                  ]
                 }
               ]
             },
@@ -141,8 +202,52 @@
               "title": "🐍 Python から呼ぶ",
               "blocks": [
                 {
-                  "type": "output",
-                  "text": "$ python -c 'import ascii_artist; print(ascii_artist.generate_box(\"hi\"))'\n┌────┐\n│ hi │\n└────┘"
+                  "type": "card",
+                  "title": "generate_box()",
+                  "text": "CLI の box と同じく、style と padding を渡せます。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python -c 'import ascii_artist; print(ascii_artist.generate_box(\"hi\"))'\n┌────┐\n│ hi │\n└────┘"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "branch()（ライブラリのみ）",
+                  "text": "1 対多、任意で多対 1 の分岐図です。CLI サブコマンドはありません。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python -c 'import ascii_artist; print(ascii_artist.branch(\"root\", [\"left\", \"right\"], \"end\"))'\n    root\n      │\n  ┌───┼───┐\n  ↓       ↓\nleft    right\n  └───┴───┘\n      ↓\n     end"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "入れ子の tree()",
+                  "text": "子は入れ子のマッピングです。再帰ではなく反復で辿るため、深い木でもインタプリタの再帰上限に縛られません。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python -c 'import ascii_artist; print(ascii_artist.tree(\"root\", {\"a\": {\"a1\": {}}, \"b\": {}}))'\nroot\n├─→ a\n│  └─→ a1\n└─→ b"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "to_web_ui_v1_html()（ライブラリのみ）",
+                  "text": "Diagram または文字列を web-ui HTML contract v1 の文書にします。theme は modern / github-like、Diagram の charset は unicode / ascii です。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python -c 'import ascii_artist; print(ascii_artist.to_web_ui_v1_html(\"hi\", title=\"Demo\"))'\n<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>\n<body data-ui-theme=\"modern\">\n<main class=\"ui-page\">\n<h1 class=\"ui-title\">Demo</h1>\n<section class=\"ui-panel\">\n<pre class=\"ui-output\">hi</pre>\n</section>\n</main>\n</body>\n</html>"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "text": "公開 API（__all__）は次のとおりです。generate_square / generate_triangle / generate_diamond / generate_box / get_template / list_templates / render_prompt_ascii / to_web_ui_v1_html / SUPPORTED / UNSUPPORTED / Node / Edge / Diagram / diagram / to_dict / from_dict / render_diagram / flow / branch / tree / to_json / from_json / to_edges / from_edges / to_adjacency / from_adjacency / to_mermaid / from_mermaid / to_dot / from_dot / to_markdown_outline / from_markdown_outline / inventory / validate_flow / flow_html / flow_mermaid / flow_document / flow_css / patch_flow。SUPPORTED と UNSUPPORTED は対応範囲の機械可読な境界です。カードフロー（validate_flow / flow_html / flow_mermaid / flow_document / flow_css / patch_flow）の契約は docs/card-flows.md を参照してください。"
                 }
               ]
             }

@@ -28,6 +28,8 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `banner()` / `banner_charset()`
 - `render_table()`
 - `render_prompt_ascii()`
+- `to_web_ui_v1_html()`
+- `SUPPORTED` / `UNSUPPORTED`
 - `diagram()` / `Node` / `Edge` / `Diagram`
 - `to_dict()` / `from_dict()`
 - `render_diagram()`
@@ -39,6 +41,7 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `to_dot()` / `from_dot()`
 - `to_markdown_outline()` / `from_markdown_outline()`
 - `inventory()`
+- `validate_flow()` / `flow_html()` / `flow_mermaid()` / `flow_document()` / `flow_css()` / `patch_flow()`
 
 ## Design
 
@@ -111,6 +114,21 @@ Minecraft
 
 \`\`\`python
 print(branch("Python API", ["RCON", "Paper bridge", "mcpi"], "Minecraft"))
+\`\`\`
+
+`branch()` is a library helper; there is no CLI subcommand. `tree()` accepts
+nested mappings. The `tree` command only places each ITEM as a direct child of
+ROOT.
+
+\`\`\`python
+print(tree("root", {"a": {"a1": {}}, "b": {}}))
+\`\`\`
+
+\`\`\`text
+root
+├─→ a
+│  └─→ a1
+└─→ b
 \`\`\`
 
 The same topology is also representable independently of rendering:
@@ -237,7 +255,7 @@ after refresh. Artifact-header provenance is a separate contract.
 
 `python ascii_artist.py COMMAND ...` exposes the main helpers (stdlib `argparse`,
 no abbreviations). Text input comes from `FILE` or stdin (`-` or omitted); output
-goes to stdout.
+goes to stdout. `flow-cards` and `flow-patch` read JSON from stdin.
 
 ```text
 square SIZE | triangle HEIGHT | diamond HALF_HEIGHT   [--char TOKEN]
@@ -247,7 +265,13 @@ template NAME | templates
 banner TEXT... [--char TOKEN] [--spacing N] [--fallback CHAR]
 table [FILE] [--format csv|tsv] [--no-header] [--style ascii|double|rounded|single] [--align SPEC]
 convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|render|inventory [--charset ...] [--layout adjacency|layered]
+flow-cards [--format html|fragment|mermaid] [--theme modern|github-like] [--asset-base PATH] [--no-embed-css]
+flow-patch [--pretty]
 ```
+
+`branch()`, nested `tree()` mappings, and `to_web_ui_v1_html()` are library-only
+(no CLI subcommand). The `tree` command places each ITEM as a direct child of
+ROOT. Card-flow details are in [card-flow API, migration and tests](docs/card-flows.md).
 
 Exit codes: 0 success; 1 input file could not be read; 2 usage error or invalid
 input (one `ascii_artist.py: error:` line on stderr).
