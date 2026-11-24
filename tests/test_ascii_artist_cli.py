@@ -167,3 +167,46 @@ def test_tree_keeps_spaces_and_unicode(run):
     assert run(["tree", "根", "two words", "葉"]) == (
         0, aa.tree("根", {"two words": {}, "葉": {}}) + "\n", ""
     )
+
+
+def test_layered_layout_resolves_duplicates_joins_and_rank_skipping(tmp_path):
+    value = aa.diagram(
+        [aa.Node("sink", "Join"), aa.Node("left", "Same"),
+         aa.Node("middle", "Middle"), aa.Node("right", "Same"), "isolated"],
+        [("left", "middle"), ("right", "middle"), ("middle", "sink"),
+         ("left", "sink")],
+    )
+    expected = (
+        "Layer 1\n  [2] Same\n  [4] Same\n  [5] isolated\n"
+        "  [2] > [3]\n  [4] > [3]\n  [2] > [1]\n\n"
+        "Layer 2\n  [3] Middle\n  [3] > [1]\n\n"
+        "Layer 3\n  [1] Join"
+    )
+    assert aa.render_diagram(value, layout="layered", charset="ascii") == expected
+    assert aa.render_diagram(value, layout="layered") == expected.replace(">", "→")
+    assert aa.render_diagram(value) == aa.render_diagram(value, layout="adjacency")
+    assert aa.render_diagram(value).startswith("Join\nSame\n")
+    assert aa.render_diagram(aa.diagram([]), layout="layered") == ""
+
+    module = tmp_path / "ascii_artist.py"
+    shutil.copyfile(ROOT / "ascii_artist.py", module)
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", str(module), "convert",
+         "--from", "json", "--to", "render", "--layout", "layered", "--charset", "ascii"],
+        input=aa.to_json(value), text=True, encoding="utf-8",
+        capture_output=True, check=True,
+    )
+    assert (result.stdout, result.stderr) == (expected + "\n", "")
+
+
+def test_layered_layout_requires_valid_dag_and_render_target(run):
+    cyclic = aa.Diagram((aa.Node("a", "A"), aa.Node("b", "B")),
+                        (aa.Edge("a", "b"), aa.Edge("b", "a")))
+    with pytest.raises(ValueError, match="acyclic"):
+        aa.render_diagram(cyclic, layout="layered")
+    with pytest.raises(ValueError, match="layout"):
+        aa.render_diagram(aa.diagram([]), layout="unknown")
+    code, out, err = run(["convert", "--from", "json", "--to", "dot", "--layout", "layered"],
+                         _diagram_json())
+    assert (code, out) == (2, "")
+    assert "--layout requires --to render" in err

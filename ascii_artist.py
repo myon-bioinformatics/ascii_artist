@@ -567,15 +567,43 @@ def _charset(name: str) -> dict[str, str]:
     raise ValueError("charset must be 'unicode' or 'ascii'")
 
 
-def render_diagram(value: Diagram, *, charset: str = "unicode") -> str:
-    """Render any DAG as an exact adjacency-oriented text representation.
+def _render_layered_diagram(value: Diagram, *, arrow: str) -> str:
+    layers = _topological_layers(value)
+    refs = {node.id: index for index, node in enumerate(value.nodes, start=1)}
+    labels = {node.id: node.label for node in value.nodes}
+    rank = {node_id: index for index, layer in enumerate(layers) for node_id in layer}
+    edges_by_layer: list[list[Edge]] = [[] for _ in layers]
+    for edge in value.edges:
+        edges_by_layer[rank[edge.source]].append(edge)
 
-    Specialized convenience renderers such as flow() and branch() may choose a
-    prettier topology-specific layout. This generic renderer prioritizes edge
-    correctness over pretending to be a full graph-layout engine.
+    sections = []
+    for index, layer in enumerate(layers):
+        lines = [f"Layer {index + 1}"]
+        lines.extend(f"  [{refs[node_id]}] {labels[node_id]}" for node_id in layer)
+        lines.extend(
+            f"  [{refs[edge.source]}] {arrow} [{refs[edge.target]}]"
+            for edge in edges_by_layer[index]
+        )
+        sections.append("\n".join(lines))
+    return "\n\n".join(sections)
+
+
+def render_diagram(
+    value: Diagram, *, charset: str = "unicode", layout: str = "adjacency"
+) -> str:
+    """Render a DAG in text, preserving the default adjacency output.
+
+    The optional layered layout lists nodes once in topological layers.
+    Connectors are shown under their source layer with numbered references,
+    so edges that skip layers or link identically labeled nodes stay unambiguous.
+    The charset controls the diagram symbols, not the user-supplied labels.
     """
 
     chars = _charset(charset)
+    if layout == "layered":
+        return _render_layered_diagram(value, arrow=chars["arrow"])
+    if layout != "adjacency":
+        raise ValueError("layout must be 'adjacency' or 'layered'")
     _validate_dag(value)
     labels = {node.id: node.label for node in value.nodes}
     outgoing = {node.id: [] for node in value.nodes}
@@ -1162,9 +1190,11 @@ def _cli_read(path: str) -> str:
 
 
 def _cli_convert(args: argparse.Namespace) -> str:
+    if args.layout is not None and args.target_format != "render":
+        raise ValueError("--layout requires --to render")
     value = _CLI_READERS[args.source_format](_cli_read(args.input))
     if args.target_format == "render":
-        return render_diagram(value, charset=args.charset)
+        return render_diagram(value, charset=args.charset, layout=args.layout or "adjacency")
     if args.target_format == "inventory":
         return json.dumps(inventory(value), ensure_ascii=False, indent=2)
     writers: dict[str, Callable[[Diagram], str]] = {
@@ -1216,6 +1246,8 @@ def _cli_parser() -> argparse.ArgumentParser:
                          choices=sorted([*_CLI_READERS, "render", "inventory"]),help="output format; render draws it, inventory prints structural statistics")
     convert.add_argument("--charset", choices=("unicode", "ascii"), default="unicode",
                          help="charset for --to render (default: unicode)")
+    convert.add_argument("--layout", choices=("adjacency", "layered"),
+                         help="layout for --to render (default: adjacency)")
     cards = commands.add_parser("flow-cards", help="render bounded JSON cards from stdin", allow_abbrev=False)
     cards.add_argument("--format", choices=("html", "fragment", "mermaid"), default="html",help="full page, HTML fragment, or Mermaid (default: %(default)s)")
     cards.add_argument("--theme", choices=FLOW_THEMES, default="github-like",help="color theme (default: %(default)s)")
