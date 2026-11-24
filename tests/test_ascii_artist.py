@@ -76,6 +76,144 @@ class AsciiArtistTests(unittest.TestCase):
             ascii_artist.generate_box("text", padding=True)
         with self.assertRaises(ValueError):
             ascii_artist.generate_box("text", style="invalid")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", padding=(1, -1))
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", padding=(1,))
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", padding=(True, 0))
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", padding=[1, 1])
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", align="justify")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", width=0)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", width=True)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", width=-3)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", title="a\nb")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", title="a\rb")
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", title=1)
+        with self.assertRaises(ValueError):
+            ascii_artist.generate_box("text", shadow=1)
+
+    def test_generate_box_heavy_style(self):
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=0, style="heavy"),
+            "┏━━┓\n┃Hi┃\n┗━━┛",
+        )
+
+    def test_generate_box_align_is_cjk_aware(self):
+        self.assertEqual(
+            ascii_artist.generate_box("日本\nab", padding=0, style="ascii", align="center"),
+            "+----+\n|日本|\n| ab |\n+----+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("日本\nab", padding=0, style="ascii", align="right"),
+            "+----+\n|日本|\n|  ab|\n+----+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("日本\nab", padding=0, style="ascii", align="left"),
+            "+----+\n|日本|\n|ab  |\n+----+",
+        )
+
+    def test_generate_box_vertical_padding_pair_keeps_int_back_compat(self):
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=(1, 1), style="ascii"),
+            "+----+\n|    |\n| Hi |\n|    |\n+----+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=(0, 2), style="ascii"),
+            "+--+\n|  |\n|  |\n|Hi|\n|  |\n|  |\n+--+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("Hello"),
+            ascii_artist.generate_box("Hello", padding=(1, 0)),
+        )
+
+    def test_generate_box_title_in_top_border(self):
+        self.assertEqual(
+            ascii_artist.generate_box("hello", title="T"),
+            "┌─ T ───┐\n│ hello │\n└───────┘",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("hello", title=""),
+            ascii_artist.generate_box("hello"),
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("x", padding=0, style="ascii", title="題"),
+            "+- 題 -+\n|x     |\n+------+",
+        )
+
+    def test_generate_box_title_longer_than_width_grows_the_box(self):
+        rendered = ascii_artist.generate_box(
+            "x", padding=0, style="ascii", title="LongTitle", width=5,
+        )
+        self.assertEqual(rendered, "+- LongTitle -+\n|x            |\n+-------------+")
+        self.assertIn("LongTitle", rendered.splitlines()[0])
+        self.assertGreater(ascii_artist.display_width(rendered.splitlines()[0]), 5)
+
+    def test_generate_box_width_wraps_cjk_and_spaces(self):
+        self.assertEqual(
+            ascii_artist.generate_box("hello", padding=0, style="ascii", width=4),
+            "+--+\n|he|\n|ll|\n|o |\n+--+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("日本語", padding=0, style="ascii", width=6),
+            "+----+\n|日本|\n|語  |\n+----+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("hello world", padding=0, style="ascii", width=10),
+            "+--------+\n|hello   |\n|world   |\n+--------+",
+        )
+        # Minimum width pads a short line; no wrap.
+        self.assertEqual(
+            ascii_artist.generate_box("hi", padding=0, style="ascii", width=8),
+            "+------+\n|hi    |\n+------+",
+        )
+        # Combining marks stay with the base character.
+        self.assertEqual(
+            ascii_artist.generate_box("e\u0301xy", padding=0, style="ascii", width=4),
+            "+--+\n|e\u0301x|\n|y |\n+--+",
+        )
+
+    def test_generate_box_width_smaller_than_padding_still_forms_a_box(self):
+        # Outer width 3 cannot hold padding=2, so wrap width falls back to 1 and the box grows.
+        self.assertEqual(
+            ascii_artist.generate_box("ab", padding=2, style="ascii", width=3),
+            "+-----+\n|  a  |\n|  b  |\n+-----+",
+        )
+
+    def test_generate_box_center_odd_gap_and_zero_wrap_floor(self):
+        self.assertEqual(
+            ascii_artist.generate_box("ab", padding=0, style="ascii", align="center", width=7),
+            "+-----+\n| ab  |\n+-----+",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("ab", padding=1, style="ascii", width=4),
+            "+---+\n| a |\n| b |\n+---+",
+        )
+        with self.assertRaises(ValueError):
+            ascii_artist._wrap_display("ab", 0)
+
+    def test_generate_box_drop_shadow(self):
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=0, style="ascii", shadow=True),
+            "+--+#\n|Hi|#\n+--+#\n ####",
+        )
+        self.assertEqual(
+            ascii_artist.generate_box("Hi", padding=0, shadow=True),
+            "┌──┐░\n│Hi│░\n└──┘░\n ░░░░",
+        )
+        boxed = ascii_artist.generate_box("Hi", padding=0, style="ascii", width=6, shadow=True)
+        body = ascii_artist.generate_box("Hi", padding=0, style="ascii", width=6)
+        self.assertTrue(all(line.endswith("#") for line in boxed.splitlines()[:-1]))
+        self.assertEqual(ascii_artist.display_width(body.splitlines()[0]), 6)
+        self.assertGreater(ascii_artist.display_width(boxed.splitlines()[0]), 6)
 
     def test_non_positive_sizes_return_empty(self):
         self.assertEqual(ascii_artist.generate_square(0), "")
@@ -185,6 +323,30 @@ class AsciiArtistTests(unittest.TestCase):
         self.assertTrue(ascii_artist.render_table([["x"]], style="rounded").startswith("╭"))
         self.assertEqual(ascii_artist.render_table([]), "")
         self.assertEqual(ascii_artist.render_table([[]]), "")
+
+    def test_every_box_style_has_table_junctions(self):
+        self.assertEqual(set(ascii_artist._BOX_STYLES), set(ascii_artist._TABLE_JUNCTIONS))
+        required = {"t", "m", "b", "l", "r"}
+        for style, junction in ascii_artist._TABLE_JUNCTIONS.items():
+            self.assertEqual(set(junction), required, style)
+            self.assertTrue(all(isinstance(ch, str) and ch for ch in junction.values()), style)
+
+    def test_render_table_heavy_style(self):
+        self.assertEqual(
+            ascii_artist.render_table(
+                [["apple", 120], ["kiwi", 3]], headers=["name", "yen"], align="lr", style="heavy",
+            ),
+            "┏━━━━━━━┳━━━━━┓\n"
+            "┃ name  ┃ yen ┃\n"
+            "┣━━━━━━━╋━━━━━┫\n"
+            "┃ apple ┃ 120 ┃\n"
+            "┃ kiwi  ┃   3 ┃\n"
+            "┗━━━━━━━┻━━━━━┛",
+        )
+        self.assertEqual(
+            ascii_artist.render_table([["a", None], ["b"]], style="heavy", padding=0),
+            "┏━┳┓\n┃a┃┃\n┃b┃┃\n┗━┻┛",
+        )
 
     def test_render_table_rejects_invalid_input(self):
         cases = [

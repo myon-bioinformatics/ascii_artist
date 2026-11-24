@@ -90,7 +90,7 @@
                 {
                   "type": "card",
                   "title": "🔲 枠で囲む",
-                  "text": "ファイル、または標準入力の文字を枠で囲みます。--style は ascii / double / rounded / single（省略時は single）、--padding は 0 以上の整数（省略時は 1）です。",
+                  "text": "ファイル、または標準入力の文字を枠で囲みます。--style は ascii / double / heavy / rounded / single（省略時は single）、--padding は N または H,V（N は従来どおり横方向のみ、省略時は 1）です。--align / --title / --width / --shadow は「枠の拡張と分岐」を参照。",
                   "blocks": [
                     {
                       "type": "output",
@@ -157,11 +157,15 @@
                 {
                   "type": "card",
                   "title": "📊 表",
-                  "text": "CSV/TSV を表にします。全角文字は 2 マスとして幅を揃えます（--align lr で列ごとに左・右寄せ）。",
+                  "text": "CSV/TSV を表にします。--style は ascii / double / heavy / rounded / single（省略時は ascii）。全角文字は 2 マスとして幅を揃えます（--align lr で列ごとに左・右寄せ）。",
                   "blocks": [
                     {
                       "type": "output",
                       "text": "$ printf '名前,値段\\nりんご,120\\n' | python ascii_artist.py table --align lr\n+--------+------+\n|  名前  | 値段 |\n+--------+------+\n| りんご |  120 |\n+--------+------+"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf 'name,yen\\napple,120\\nkiwi,3\\n' | python ascii_artist.py table --style heavy --align lr\n┏━━━━━━━┳━━━━━┓\n┃ name  ┃ yen ┃\n┣━━━━━━━╋━━━━━┫\n┃ apple ┃ 120 ┃\n┃ kiwi  ┃   3 ┃\n┗━━━━━━━┻━━━━━┛"
                     }
                   ]
                 },
@@ -214,8 +218,8 @@
                 },
                 {
                   "type": "card",
-                  "title": "branch()（ライブラリのみ）",
-                  "text": "1 対多、任意で多対 1 の分岐図です。CLI サブコマンドはありません。",
+                  "title": "branch()",
+                  "text": "1 対多、任意で多対 1 の分岐図です。同じものは CLI の branch でも呼べます。",
                   "blocks": [
                     {
                       "type": "output",
@@ -248,6 +252,50 @@
                 {
                   "type": "text",
                   "text": "公開 API（__all__）は次のとおりです。generate_square / generate_triangle / generate_diamond / generate_box / get_template / list_templates / banner / banner_charset / render_table / render_prompt_ascii / to_web_ui_v1_html / SUPPORTED / UNSUPPORTED / Node / Edge / Diagram / diagram / to_dict / from_dict / render_diagram / flow / branch / tree / to_json / from_json / to_edges / from_edges / to_adjacency / from_adjacency / to_mermaid / from_mermaid / to_dot / from_dot / to_markdown_outline / from_markdown_outline / inventory / validate_flow / flow_html / flow_mermaid / flow_document / flow_css / patch_flow。SUPPORTED と UNSUPPORTED は対応範囲の機械可読な境界です。カードフロー（validate_flow / flow_html / flow_mermaid / flow_document / flow_css / patch_flow）の契約は docs/card-flows.md を参照してください。"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "title": "📦 枠の拡張と分岐",
+              "blocks": [
+                {
+                  "type": "text",
+                  "text": "box に --align（left/center/right、全角幅を考慮）、--padding N または H,V（N は従来どおり横方向のみ）、--title、--style heavy、--width（最小幅＋折り返し）、--shadow を足しました。branch は既存の branch() を呼びます。"
+                },
+                {
+                  "type": "card",
+                  "title": "🔲 枠のオプション",
+                  "text": "--style heavy と --title、縦横パディング、中央寄せ。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ printf hi | python ascii_artist.py box --style heavy --title Hi --padding 1,1 --align center --width 14\n┏━ Hi ━━━━━━━┓\n┃            ┃\n┃     hi     ┃\n┃            ┃\n┗━━━━━━━━━━━━┛"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf '日本\\nab' | python ascii_artist.py box --style ascii --padding 0 --align center\n+----+\n|日本|\n| ab |\n+----+"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf hello | python ascii_artist.py box --style ascii --padding 0 --width 4\n+--+\n|he|\n|ll|\n|o |\n+--+"
+                    },
+                    {
+                      "type": "output",
+                      "text": "$ printf Hi | python ascii_artist.py box --style ascii --padding 0 --shadow\n+--+#\n|Hi|#\n+--+#\n ####"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "🌿 分岐（branch）",
+                  "text": "ROOT から ITEM へ分岐し、--target を付けると再び合流します。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python ascii_artist.py branch root left right --target end\n    root\n      │\n  ┌───┼───┐\n  ↓       ↓\nleft    right\n  └───┴───┘\n      ↓\n     end"
+                    }
+                  ]
                 }
               ]
             }

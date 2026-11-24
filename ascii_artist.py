@@ -934,6 +934,9 @@ _BOX_STYLES = {
     "ascii": {
         "tl": "+", "tr": "+", "bl": "+", "br": "+", "h": "-", "v": "|"
     },
+    "heavy": {
+        "tl": "┏", "tr": "┓", "bl": "┗", "br": "┛", "h": "━", "v": "┃"
+    },
 }
 
 
@@ -947,38 +950,146 @@ def display_width(text: str) -> int:
     return width
 
 
+def _box_padding(padding: int | tuple[int, int]) -> tuple[int, int]:
+    """Return (horizontal, vertical) padding. A single int is horizontal only."""
+    if isinstance(padding, int) and not isinstance(padding, bool):
+        if padding < 0:
+            raise ValueError("padding must be a non-negative integer")
+        return padding, 0
+    if (
+        isinstance(padding, tuple)
+        and len(padding) == 2
+        and all(isinstance(part, int) and not isinstance(part, bool) and part >= 0 for part in padding)
+    ):
+        return padding[0], padding[1]
+    raise ValueError("padding must be a non-negative integer or an H,V pair")
+
+
+def _clusters(text: str) -> list[str]:
+    """Split into base characters plus any following combining or format marks."""
+    clusters: list[str] = []
+    for char in text:
+        if clusters and (unicodedata.combining(char) or unicodedata.category(char) in ("Mn", "Me", "Cf")):
+            clusters[-1] += char
+        else:
+            clusters.append(char)
+    return clusters
+
+
+def _wrap_display(text: str, width: int) -> list[str]:
+    """Wrap a single line to a maximum display width, preferring breaks at spaces."""
+    if width < 1:
+        raise ValueError("wrap width must be a positive integer")
+    if display_width(text) <= width:
+        return [text]
+    lines: list[str] = []
+    current = ""
+    for cluster in _clusters(text):
+        trial = current + cluster
+        if current and display_width(trial) > width:
+            broken = current.rsplit(" ", 1)
+            if len(broken) == 2:
+                lines.append(broken[0])
+                current = broken[1] + cluster
+            else:
+                lines.append(current)
+                current = cluster
+        else:
+            current = trial
+    lines.append(current)
+    return lines
+
+
+def _pad_align(text: str, width: int, align: str) -> str:
+    """Pad text to a display width with left, center, or right alignment."""
+    gap = width - display_width(text)
+    if align == "right":
+        return " " * gap + text
+    if align == "center":
+        left = gap // 2
+        return " " * left + text + " " * (gap - left)
+    return text + " " * gap
+
+
+def _box_top(chars: dict[str, str], inner: int, title: str | None) -> str:
+    """Build the top border, optionally embedding a single-line title."""
+    if title is None:
+        return chars["tl"] + chars["h"] * inner + chars["tr"]
+    body = chars["h"] + " " + title + " "
+    return chars["tl"] + body + chars["h"] * (inner - display_width(body)) + chars["tr"]
+
+
+def _box_shadow(text: str, *, ascii_style: bool) -> str:
+    """Add a one-cell drop shadow to the right and below a box."""
+    mark = "#" if ascii_style else "░"
+    lines = text.split("\n")
+    width = max(display_width(line) for line in lines)
+    shadowed = [line + " " * (width - display_width(line)) + mark for line in lines]
+    shadowed.append(" " + mark * width)
+    return "\n".join(shadowed)
+
+
 def generate_box(
     text: str,
     *,
-    padding: int = 1,
-    style: Literal["single", "double", "rounded", "ascii"] = "single",
+    padding: int | tuple[int, int] = 1,
+    style: Literal["single", "double", "rounded", "ascii", "heavy"] = "single",
+    align: Literal["left", "center", "right"] = "left",
+    title: str | None = None,
+    width: int | None = None,
+    shadow: bool = False,
 ) -> str:
-    """Generate a bordered text box around single or multi-line text."""
+    """Generate a bordered text box around single or multi-line text.
+
+    ``padding`` is a non-negative integer (horizontal only, for compatibility)
+    or an ``(horizontal, vertical)`` pair. ``align`` is CJK-aware via
+    ``display_width``. ``title`` is embedded in the top border. ``width`` is a
+    minimum outer width in display cells and wraps text; a drop ``shadow`` is
+    drawn to the right and below and is not counted in ``width``.
+    """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
-    if not isinstance(padding, int) or isinstance(padding, bool) or padding < 0:
-        raise ValueError("padding must be a non-negative integer")
+    horizontal, vertical = _box_padding(padding)
     if not isinstance(style, str) or style not in _BOX_STYLES:
         raise ValueError(f"style must be one of {sorted(_BOX_STYLES.keys())!r}")
+    if align not in {"left", "center", "right"}:
+        raise ValueError("align must be 'left', 'center', or 'right'")
+    if title is not None:
+        if not isinstance(title, str) or "\n" in title or "\r" in title:
+            raise ValueError("title must be a single-line string")
+        if not title:
+            title = None
+    if width is not None and (not isinstance(width, int) or isinstance(width, bool) or width < 1):
+        raise ValueError("width must be a positive integer")
+    if not isinstance(shadow, bool):
+        raise ValueError("shadow must be a bool")
 
     chars = _BOX_STYLES[style]
-    lines = text.replace("\r\n", "\n").replace("\r", "\n").splitlines()
-    if not lines:
-        lines = [""]
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").splitlines() or [""]
+    if width is not None:
+        wrap_at = width - 2 - 2 * horizontal
+        if wrap_at < 1:
+            wrap_at = 1
+        lines = [part for line in lines for part in _wrap_display(line, wrap_at)]
 
-    max_len = max(display_width(line) for line in lines)
-    inner_width = max_len + 2 * padding
-    pad_str = " " * padding
-
-    top = chars["tl"] + chars["h"] * inner_width + chars["tr"]
-    bottom = chars["bl"] + chars["h"] * inner_width + chars["br"]
-
-    content_lines = [
-        f"{chars['v']}{pad_str}{line}{' ' * (max_len - display_width(line))}{pad_str}{chars['v']}"
+    content = max(display_width(line) for line in lines)
+    inner = content + 2 * horizontal
+    if title is not None:
+        inner = max(inner, display_width(title) + 4)
+    if width is not None:
+        inner = max(inner, width - 2)
+    content = inner - 2 * horizontal
+    pad = " " * horizontal
+    blank = f"{chars['v']}{pad}{' ' * content}{pad}{chars['v']}"
+    body = [
+        f"{chars['v']}{pad}{_pad_align(line, content, align)}{pad}{chars['v']}"
         for line in lines
     ]
-
-    return "\n".join([top, *content_lines, bottom])
+    mid = [blank] * vertical + body + [blank] * vertical
+    box = "\n".join([_box_top(chars, inner, title), *mid, chars["bl"] + chars["h"] * inner + chars["br"]])
+    if shadow:
+        return _box_shadow(box, ascii_style=style == "ascii")
+    return box
 
 
 _TABLE_JUNCTIONS = {
@@ -986,6 +1097,7 @@ _TABLE_JUNCTIONS = {
     "double": {"t": "╦", "m": "╬", "b": "╩", "l": "╠", "r": "╣"},
     "rounded": {"t": "┬", "m": "┼", "b": "┴", "l": "├", "r": "┤"},
     "ascii": {"t": "+", "m": "+", "b": "+", "l": "+", "r": "+"},
+    "heavy": {"t": "┳", "m": "╋", "b": "┻", "l": "┣", "r": "┫"},
 }
 _TABLE_ALIGN = {"l": "left", "r": "right", "c": "center", "left": "left", "right": "right", "center": "center"}
 
@@ -1011,7 +1123,7 @@ def render_table(
     rows: Iterable[Iterable[Any]],
     *,
     headers: Iterable[Any] | None = None,
-    style: Literal["single", "double", "rounded", "ascii"] = "ascii",
+    style: Literal["single", "double", "rounded", "ascii", "heavy"] = "ascii",
     align: str | Iterable[str] | None = None,
     padding: int = 1,
 ) -> str:
@@ -1426,6 +1538,22 @@ def _cli_convert(args: argparse.Namespace) -> str:
     return writers[args.target_format](value)
 
 
+def _cli_padding(value: str) -> int | tuple[int, int]:
+    """Parse --padding N or H,V. Negative values are left for generate_box."""
+    parts = value.split(",")
+    if len(parts) == 1:
+        try:
+            return int(parts[0], 10)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError("padding must be N or H,V") from exc
+    if len(parts) == 2:
+        try:
+            return (int(parts[0], 10), int(parts[1], 10))
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError("padding must be N or H,V") from exc
+    raise argparse.ArgumentTypeError("padding must be N or H,V")
+
+
 def _cli_table(args: argparse.Namespace) -> str:
     reader = csv.reader(_cli_read(args.input).splitlines(), delimiter="\t" if args.table_format == "tsv" else ",")
     rows = [row for row in reader if row]
@@ -1433,6 +1561,7 @@ def _cli_table(args: argparse.Namespace) -> str:
         raise ValueError("table input has no rows")
     headers = None if args.no_header else rows.pop(0)
     return render_table(rows, headers=headers, style=args.style, align=args.align)
+
 
 
 def _cli_parser() -> argparse.ArgumentParser:
@@ -1455,14 +1584,26 @@ def _cli_parser() -> argparse.ArgumentParser:
     box = commands.add_parser("box", help="draw a box around text", allow_abbrev=False)
     box.add_argument("input", nargs="?", default="-", metavar="FILE",
                      help="UTF-8 text file; - or omitted reads stdin")
-    box.add_argument("--padding", type=int, default=1, help="non-negative padding (default: 1)")
+    box.add_argument("--padding", type=_cli_padding, default=1,
+                     help="N (horizontal, default: 1) or H,V (horizontal, vertical)")
     box.add_argument("--style", choices=sorted(_BOX_STYLES), default="single",
                      help="border style (default: single)")
-    for name, help_text in (("flow", "render a vertical flow"), ("tree", "render ITEMS as children of ROOT")):
+    box.add_argument("--align", choices=("left", "center", "right"), default="left",
+                     help="text alignment (default: left)")
+    box.add_argument("--title", default=None, help="heading embedded in the top border")
+    box.add_argument("--width", type=int, default=None,
+                     help="minimum outer width in display cells; wraps text")
+    box.add_argument("--shadow", action="store_true", help="draw a one-cell drop shadow")
+    for name, help_text in (("flow", "render a vertical flow"), ("tree", "render ITEMS as children of ROOT"),
+                            ("branch", "render a one-to-many, optionally many-to-one, branch")):
         sub = commands.add_parser(name, help=help_text, allow_abbrev=False)
-        if name == "tree":
+        if name in ("tree", "branch"):
             sub.add_argument("root", metavar="ROOT", help="root label")
-        sub.add_argument("items", nargs="+", metavar="ITEM", help="single-line label")
+        nargs = "*" if name == "branch" else "+"
+        sub.add_argument("items", nargs=nargs, metavar="ITEM", help="single-line label")
+        if name == "branch":
+            sub.add_argument("--target", default=None, metavar="TARGET",
+                             help="optional convergence label")
         sub.add_argument("--charset", choices=("unicode", "ascii"), default="unicode",help="box-drawing characters or plain ASCII (default: %(default)s)")
     big = commands.add_parser("banner", help="draw TEXT in the built-in big-letter font", allow_abbrev=False)
     big.add_argument("text", nargs="+", metavar="TEXT", help="words joined with one space; a-z use A-Z glyphs")
@@ -1518,9 +1659,19 @@ def main(argv: Iterable[str] | None = None) -> int:
         elif args.command in ("flow-cards", "flow-patch"):
             text = _cli_flow(args)
         elif args.command == "box":
-            text = generate_box(_cli_read(args.input), padding=args.padding, style=args.style)
+            text = generate_box(
+                _cli_read(args.input),
+                padding=args.padding,
+                style=args.style,
+                align=args.align,
+                title=args.title,
+                width=args.width,
+                shadow=args.shadow,
+            )
         elif args.command == "flow":
             text = flow(args.items, charset=args.charset)
+        elif args.command == "branch":
+            text = branch(args.root, args.items, args.target, charset=args.charset)
         elif args.command == "tree":
             if any(not item or "\n" in item or "\r" in item for item in args.items):
                 raise ValueError("tree items must be non-empty single-line strings")
