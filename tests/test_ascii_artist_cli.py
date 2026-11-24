@@ -1,7 +1,7 @@
 """ascii_artist.py command-line entry point: unit tests and real-file mutation checks."""
 from __future__ import annotations
 
-import argparse, io, shutil, subprocess, sys
+import argparse, io, os, shutil, subprocess, sys
 from pathlib import Path
 
 import pytest
@@ -276,15 +276,17 @@ def test_layered_layout_requires_valid_dag_and_render_target(run):
 
 
 BOX_CHECK = r"""
-import argparse, importlib.util, subprocess, sys
+# -*- coding: utf-8 -*-
+import argparse, importlib.util, os, subprocess, sys
 from pathlib import Path
 spec = importlib.util.spec_from_file_location('ascii_artist', Path('ascii_artist.py'))
 aa = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aa)
+ENV = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8'}
 
 def cli(*argv, stdin='x'):
     p = subprocess.run([sys.executable, '-S', 'ascii_artist.py', *argv], input=stdin,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, encoding='utf-8', env=ENV)
     return p.returncode, p.stdout, p.stderr
 
 ok = True
@@ -336,7 +338,14 @@ def _box_check(tmp_path: Path, old: str | None = None, new: str = "") -> int:
         text = text.replace(old, new, 1)
     (tmp_path / "ascii_artist.py").write_text(text, encoding="utf-8")
     (tmp_path / "box_check.py").write_text(BOX_CHECK, encoding="utf-8")
-    return subprocess.run([sys.executable, "box_check.py"], cwd=tmp_path, timeout=120).returncode
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+    result = subprocess.run(
+        [sys.executable, "box_check.py"], cwd=tmp_path, timeout=120, env=env,
+        capture_output=True, text=True, encoding="utf-8",
+    )
+    if result.returncode != 0 and result.stderr:
+        print(result.stderr, file=sys.stderr)
+    return result.returncode
 
 
 def test_box_mutation_unmutated_passes(tmp_path):
