@@ -114,7 +114,7 @@ Minecraft
 print(branch("Python API", ["RCON", "Paper bridge", "mcpi"], "Minecraft"))
 \`\`\`
 
-`branch()` is a library helper; there is no CLI subcommand. `tree()` accepts
+The `branch` command exposes `branch()`. `tree()` accepts
 nested mappings. The `tree` command only places each ITEM as a direct child of
 ROOT.
 
@@ -242,9 +242,9 @@ flow-cards [--format html|fragment|mermaid] [--theme modern|github-like] [--asse
 flow-patch [--pretty]
 ```
 
-`branch()`, nested `tree()` mappings, and `to_web_ui_v1_html()` are library-only
-(no CLI subcommand). The `tree` command places each ITEM as a direct child of
-ROOT. Card-flow details are in [card-flow API, migration and tests](docs/card-flows.md).
+Nested `tree()` mappings and `to_web_ui_v1_html()` are library-only (no CLI
+subcommand). The `branch` command exposes `branch()`. The `tree` command places
+each ITEM as a direct child of ROOT. Card-flow details are in [card-flow API, migration and tests](docs/card-flows.md).
 
 Exit codes: 0 success; 1 input file could not be read; 2 usage error or invalid
 input (one `ascii_artist.py: error:` line on stderr).

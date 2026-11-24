@@ -192,8 +192,8 @@
                 },
                 {
                   "type": "card",
-                  "title": "branch()（ライブラリのみ）",
-                  "text": "1 対多、任意で多対 1 の分岐図です。CLI サブコマンドはありません。",
+                  "title": "branch()",
+                  "text": "1 対多、任意で多対 1 の分岐図です。同じものは CLI の branch でも呼べます。",
                   "blocks": [
                     {
                       "type": "output",
