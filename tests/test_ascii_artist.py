@@ -99,6 +99,117 @@ class AsciiArtistTests(unittest.TestCase):
         self.assertIn("heart", ascii_artist.list_templates())
         self.assertEqual(ascii_artist.get_template("missing"), "")
 
+    def test_generic_templates_are_plain_ascii_without_brand(self):
+        names = ascii_artist.list_templates()
+        for name in ("coffee", "dog", "fish", "owl", "rocket", "star"):
+            self.assertIn(name, names)
+            art = ascii_artist.get_template(name)
+            self.assertTrue(art.endswith("\n"))
+            self.assertTrue(art.isascii())
+            self.assertNotIn("IRONMATE", art.upper())
+        self.assertEqual(names, sorted(names))
+
+    def test_banner_font_glyphs_are_rectangular_and_cover_charset(self):
+        charset = ascii_artist.banner_charset()
+        for ch in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !?.,:'-_+=/()":
+            self.assertIn(ch, charset)
+        for ch, rows in ascii_artist._BANNER_FONT.items():
+            self.assertEqual(len(rows), 5, ch)
+            self.assertEqual(len({len(row) for row in rows}), 1, ch)
+            self.assertLessEqual(set("".join(rows)), {"#", " "}, ch)
+
+    def test_banner_renders_exact_rows(self):
+        self.assertEqual(
+            ascii_artist.banner("HI"),
+            "#   # ###\n#   #  #\n#####  #\n#   #  #\n#   # ###",
+        )
+        self.assertEqual(ascii_artist.banner("I", char="%"), "%%%\n %\n %\n %\n%%%")
+        self.assertEqual(ascii_artist.banner("II", spacing=0).splitlines()[0], "######")
+        self.assertEqual(ascii_artist.banner(""), "")
+
+    def test_banner_lowercase_folds_to_uppercase(self):
+        self.assertEqual(ascii_artist.banner("abc xyz"), ascii_artist.banner("ABC XYZ"))
+
+    def test_banner_wide_token_pads_blank_cells(self):
+        rows = ascii_artist.banner("I", char="漢").splitlines()
+        self.assertEqual(rows[1], "  漢")
+        self.assertEqual(ascii_artist.display_width(rows[0]), 6)
+
+    def test_banner_unsupported_characters_error_or_fallback(self):
+        with self.assertRaisesRegex(ValueError, r"unsupported banner characters: 'é', '\*'"):
+            ascii_artist.banner("éé*")
+        self.assertEqual(ascii_artist.banner("é", fallback="?"), ascii_artist.banner("?"))
+        self.assertEqual(ascii_artist.banner("é", fallback="x"), ascii_artist.banner("X"))
+        for bad in ("", "??", "*", 1):
+            with self.assertRaises(ValueError):
+                ascii_artist.banner("A", fallback=bad)
+
+    def test_banner_rejects_invalid_arguments(self):
+        with self.assertRaises(TypeError):
+            ascii_artist.banner(1)
+        with self.assertRaises(ValueError):
+            ascii_artist.banner("A\nB")
+        with self.assertRaises(ValueError):
+            ascii_artist.banner("A", char="")
+        for spacing in (-1, True, 1.5):
+            with self.assertRaises(ValueError):
+                ascii_artist.banner("A", spacing=spacing)
+
+    def test_render_table_ascii_with_headers_and_alignment(self):
+        self.assertEqual(
+            ascii_artist.render_table([["apple", 120], ["kiwi", 3]], headers=["name", "yen"], align="lr"),
+            "+-------+-----+\n"
+            "| name  | yen |\n"
+            "+-------+-----+\n"
+            "| apple | 120 |\n"
+            "| kiwi  |   3 |\n"
+            "+-------+-----+",
+        )
+
+    def test_render_table_cjk_width_and_center(self):
+        rendered = ascii_artist.render_table([["りんご", "x"]], headers=["名前", "c"], align=["center", "c"])
+        lines = rendered.splitlines()
+        self.assertEqual(lines[1], "|  名前  | c |")
+        self.assertEqual(lines[3], "| りんご | x |")
+        self.assertEqual({ascii_artist.display_width(line) for line in lines}, {14})
+
+    def test_render_table_styles_ragged_rows_and_none(self):
+        self.assertEqual(
+            ascii_artist.render_table([["a", None], ["b"]], style="single", padding=0),
+            "┌─┬┐\n│a││\n│b││\n└─┴┘",
+        )
+        self.assertEqual(
+            ascii_artist.render_table([], headers=["h"], style="double"),
+            "╔═══╗\n║ h ║\n╠═══╣\n╚═══╝",
+        )
+        self.assertTrue(ascii_artist.render_table([["x"]], style="rounded").startswith("╭"))
+        self.assertEqual(ascii_artist.render_table([]), "")
+        self.assertEqual(ascii_artist.render_table([[]]), "")
+
+    def test_render_table_rejects_invalid_input(self):
+        cases = [
+            (ValueError, ([["a\nb"]],), {}),
+            (ValueError, ([["a"]],), {"style": "fancy"}),
+            (ValueError, ([["a"]],), {"padding": -1}),
+            (ValueError, ([["a"]],), {"padding": True}),
+            (ValueError, ([["a"]],), {"align": "lr"}),
+            (ValueError, ([["a"]],), {"align": "x"}),
+            (ValueError, ([["a"]],), {"align": [1]}),
+            (TypeError, ("ab",), {}),
+            (TypeError, (["ab"],), {}),
+            (TypeError, ([["a"]],), {"headers": "h"}),
+        ]
+        for exc, args, kwargs in cases:
+            with self.assertRaises(exc, msg=(args, kwargs)):
+                ascii_artist.render_table(*args, **kwargs)
+
+    def test_new_capabilities_are_in_stance(self):
+        joined = " ".join(ascii_artist.SUPPORTED["generation"])
+        self.assertIn("banner font", joined)
+        self.assertIn("tables", joined)
+        self.assertIn("ANSI color rendering", ascii_artist.UNSUPPORTED["rendering"])
+        self.assertIn("image/raster rendering or image decoding", ascii_artist.UNSUPPORTED["rendering"])
+
     def test_render_accepts_generate_light_object_and_sanitizes_wrappers(self):
         self.assertEqual(
             ascii_artist.render_prompt_ascii("cat", _LightGenerator()),

@@ -25,6 +25,8 @@ Python utilities for ASCII art generation, conversion, layout, and text-based gr
 - `generate_box()`
 - `get_template()`
 - `list_templates()`
+- `banner()` / `banner_charset()`
+- `render_table()`
 - `render_prompt_ascii()`
 - `to_web_ui_v1_html()`
 - `SUPPORTED` / `UNSUPPORTED`
@@ -200,13 +202,37 @@ The module itself imports no LLM SDK.
 
 The `char` argument used by shape generators is a non-empty, single-line **token**. Unicode and multi-code-point tokens are accepted and repeated as-is. Sizes count repetitions, not terminal display cells; perfect alignment for wide Unicode glyphs is outside the stdlib-only contract.
 
-Built-in templates include both Ironmate-derived entries and generic examples such as `cat`, `heart`, and `tree`.
+Built-in templates include both Ironmate-derived entries and generic examples: `cat`, `coffee`, `dog`, `fish`, `heart`, `owl`, `rocket`, `star`, and `tree`.
+
+## Banner font and tables
+
+`banner(text, *, char="#", spacing=1, fallback=None)` draws one line of text with a built-in 5-row big-letter font. `banner_charset()` returns the drawable characters: `A`-`Z`, `0`-`9`, space and `! ? . , : ' - _ + = / ( )`. ASCII lowercase `a`-`z` are drawn with the uppercase glyphs. Any other character raises `ValueError` naming every unsupported character, unless `fallback` names a supported character to draw instead. Text with a line break raises `ValueError`; empty text returns `""`. Blank cells are padded to the `display_width` of `char`, and trailing spaces are stripped from each row.
+
+```text
+$ python ascii_artist.py banner hi
+#   # ###
+#   #  #
+#####  #
+#   #  #
+#   # ###
+```
+
+`render_table(rows, *, headers=None, style="ascii", align=None, padding=1)` renders a bordered table in the `ascii`, `single`, `double` or `rounded` style. Cells go through `str()` (`None` becomes empty) and must be single-line; short rows are padded with empty cells. Column widths use `display_width`, so CJK wide characters count as two cells (best effort, like `generate_box`). `align` gives one `l`/`r`/`c` (or `left`/`right`/`center`) per column, for example `"lr"`; missing columns align left and headers are centered. No headers and no rows returns `""`.
+
+```text
+$ printf '名前,値段\nりんご,120\n' | python ascii_artist.py table --align lr
++--------+------+
+|  名前  | 値段 |
++--------+------+
+| りんご |  120 |
++--------+------+
+```
 
 ## Capability stance
 
 The module exposes `SUPPORTED` and `UNSUPPORTED` dictionaries so the boundary is machine-readable as well as documented.
 
-Currently supported includes deterministic shape generation, Unicode string tokens, built-in templates, Diagram IR, lossless dict/JSON round trips, edge-list/adjacency adapters, Mermaid/DOT/Markdown-outline subset conversion, inventory, deterministic flow/branch/tree rendering, SDK-agnostic generator adapters, narrow wrapper sanitization, and single-file stdlib-only vendoring.
+Currently supported includes deterministic shape generation, Unicode string tokens, built-in templates, a built-in banner font, plain-text tables, Diagram IR, lossless dict/JSON round trips, edge-list/adjacency adapters, Mermaid/DOT/Markdown-outline subset conversion, inventory, deterministic flow/branch/tree rendering, SDK-agnostic generator adapters, narrow wrapper sanitization, and single-file stdlib-only vendoring.
 
 Explicitly unsupported includes terminal-cell-perfect alignment for wide glyphs, ANSI/terminal capability handling, image decoding/rendering, full Markdown parsing, general-purpose/cyclic graph layout, fuzzy prose deletion, and hard dependencies on a specific LLM SDK.
 
@@ -236,6 +262,8 @@ square SIZE | triangle HEIGHT | diamond HALF_HEIGHT   [--char TOKEN]
 box [FILE] [--padding N] [--style ascii|double|rounded|single]
 flow ITEM... | tree ROOT ITEM...                      [--charset unicode|ascii]
 template NAME | templates
+banner TEXT... [--char TOKEN] [--spacing N] [--fallback CHAR]
+table [FILE] [--format csv|tsv] [--no-header] [--style ascii|double|rounded|single] [--align SPEC]
 convert [FILE] --from json|mermaid|dot|outline --to json|mermaid|dot|outline|render|inventory [--charset ...] [--layout adjacency|layered]
 flow-cards [--format html|fragment|mermaid] [--theme modern|github-like] [--asset-base PATH] [--no-embed-css]
 flow-patch [--pretty]
