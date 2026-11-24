@@ -32,10 +32,11 @@ permissions:
 
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
+    timeout-minutes: 30
     name: Pages checks (no browser)
     runs-on: ubuntu-latest
     steps:
@@ -60,6 +61,7 @@ jobs:
         run: python -m pytest -q tests/test_tooling.py
 
   build:
+    timeout-minutes: 30
     needs: checks
     runs-on: ubuntu-latest
     steps:
@@ -137,6 +139,7 @@ jobs:
           path: _site
 
   deploy:
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
