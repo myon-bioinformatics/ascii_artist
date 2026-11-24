@@ -95,6 +95,7 @@ jobs:
           python scripts/ascii_artist_repository_diagnostics.py _site
           # The front page is the usage guide: a web-ui-page/1 spec (data only) rendered by the pinned PySaiyanWeBoo.
           python -m pysaiyanweboo --page docs/guide.page.json > _site/index.html
+          mkdir -p _site/demos && cp docs/evidence/browser.gif _site/demos/   # 🎞 the guide's GIF tab
       - name: Assert ASCII, card flows and diagnostics, then capture
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
