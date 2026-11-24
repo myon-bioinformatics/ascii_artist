@@ -1,5 +1,5 @@
 # ascii_artist.py
-# metadata: __all__=39 | base_sha=7c21bacfac7b60327b77f9b31a87869ef7838a7e | updated_at=2026-09-23T05:39:43Z
+# metadata: __all__=42 | base_sha=7c21bacfac7b60327b77f9b31a87869ef7838a7e | updated_at=2026-09-23T05:39:43Z
 """ASCII art generation, conversion, layout and text-based diagrams in one standard-library file."""
 
 __all__ = [
@@ -9,6 +9,9 @@ __all__ = [
     "generate_box",
     "get_template",
     "list_templates",
+    "banner",
+    "banner_charset",
+    "render_table",
     "render_prompt_ascii",
     "to_web_ui_v1_html",
     "SUPPORTED",
@@ -44,7 +47,7 @@ __all__ = [
     "patch_flow",
 ]
 
-import argparse, html, json, re, sys, unicodedata
+import argparse, csv, html, json, re, sys, unicodedata
 from collections import deque; from dataclasses import dataclass; from typing import Any, Callable, Iterable, Literal, Mapping, Protocol
 
 SUPPORTED = {
@@ -52,6 +55,8 @@ SUPPORTED = {
         "square / triangle / diamond / box text-art generation",
         "non-empty single-line string tokens, including Unicode",
         "built-in text-art templates",
+        "built-in 5-row banner font (A-Z, 0-9, space and common punctuation)",
+        "plain-text tables with display_width-based (CJK-aware) padding",
         "Diagram IR with deterministic flow / branch / tree rendering",
         "lossless Diagram <-> dict / JSON serialization",
         "edge-list and adjacency adapters",
@@ -86,6 +91,8 @@ UNSUPPORTED = {
         "ANSI color rendering",
         "terminal capability negotiation",
         "image/raster rendering or image decoding",
+        "banner glyphs outside the built-in A-Z / 0-9 / punctuation set",
+        "multi-line table cells or automatic column wrapping",
     ],
     "parsing": [
         "full Markdown parsing",
@@ -763,6 +770,12 @@ _ASCII_TEMPLATES = {
     "cat": " /\\_/\\\n( o.o )\n > ^ <\n",
     "heart": " **   **\n***** *****\n *********\n  *******\n   *****\n    ***\n     *\n",
     "tree": "    *\n   ***\n  *****\n *******\n    |\n",
+    "coffee": "   ( (\n    ) )\n  ........\n  |      |]\n  \\      /\n   `----'\n",
+    "dog": "  __\no-''|\\_____/)\n \\_/|_)     )\n    \\  __  /\n    (_/ (_/\n",
+    "fish": "    __\n><((('>\n    ``\n",
+    "owl": " ,_,\n(O,O)\n(   )\n-\"-\"-\n",
+    "rocket": "    /\\\n   /  \\\n   |()|\n   |  |\n  /|  |\\\n /_|__|_\\\n   /\\/\\\n",
+    "star": "     /\\\n____/  \\____\n\\          /\n \\        /\n /   /\\   \\\n/___/  \\___\\\n",
 }
 
 _FENCE_LINE_RE = re.compile(r"^\s*(?:`{3,}|~{3,})(?:[A-Za-z0-9_.+-]+)?\s*$")
@@ -1079,6 +1092,101 @@ def generate_box(
     return box
 
 
+_TABLE_JUNCTIONS = {
+    "single": {"t": "┬", "m": "┼", "b": "┴", "l": "├", "r": "┤"},
+    "double": {"t": "╦", "m": "╬", "b": "╩", "l": "╠", "r": "╣"},
+    "rounded": {"t": "┬", "m": "┼", "b": "┴", "l": "├", "r": "┤"},
+    "ascii": {"t": "+", "m": "+", "b": "+", "l": "+", "r": "+"},
+}
+_TABLE_ALIGN = {"l": "left", "r": "right", "c": "center", "left": "left", "right": "right", "center": "center"}
+
+
+def _table_cell(value: Any) -> str:
+    text = "" if value is None else str(value)
+    if "\n" in text or "\r" in text:
+        raise ValueError("table cells must be single-line")
+    return text
+
+
+def _pad_cell(text: str, width: int, align: str) -> str:
+    gap = width - display_width(text)
+    if align == "right":
+        return " " * gap + text
+    if align == "center":
+        left = gap // 2
+        return " " * left + text + " " * (gap - left)
+    return text + " " * gap
+
+
+def render_table(
+    rows: Iterable[Iterable[Any]],
+    *,
+    headers: Iterable[Any] | None = None,
+    style: Literal["single", "double", "rounded", "ascii"] = "ascii",
+    align: str | Iterable[str] | None = None,
+    padding: int = 1,
+) -> str:
+    """Render rows (and optional headers) as a bordered plain-text table.
+
+    Cells are converted with ``str()`` (``None`` becomes empty) and must be
+    single-line. Short rows are padded with empty cells. Column widths use
+    ``display_width`` so CJK wide characters count as two cells. ``align`` is
+    one entry per column (``l``/``r``/``c`` or ``left``/``right``/``center``,
+    or a string such as ``"lrc"``); missing columns align left. A table with
+    no headers and no rows returns ``""``.
+    """
+    if not isinstance(style, str) or style not in _BOX_STYLES:
+        raise ValueError(f"style must be one of {sorted(_BOX_STYLES.keys())!r}")
+    if not isinstance(padding, int) or isinstance(padding, bool) or padding < 0:
+        raise ValueError("padding must be a non-negative integer")
+    if isinstance(rows, (str, bytes)):
+        raise TypeError("rows must be an iterable of row iterables")
+    body: list[list[str]] = []
+    for row in rows:
+        if isinstance(row, (str, bytes)):
+            raise TypeError("each row must be an iterable of cells, not a string")
+        body.append([_table_cell(cell) for cell in row])
+    head: list[str] | None = None
+    if headers is not None:
+        if isinstance(headers, (str, bytes)):
+            raise TypeError("headers must be an iterable of cells, not a string")
+        head = [_table_cell(cell) for cell in headers]
+    lines_in = ([head] if head is not None else []) + body
+    columns = max((len(line) for line in lines_in), default=0)
+    if columns == 0:
+        return ""
+    if align is None:
+        aligns: list[str] = []
+    else:
+        raw = list(align)
+        if len(raw) > columns:
+            raise ValueError(f"align has {len(raw)} entries for {columns} columns")
+        if any(not isinstance(a, str) or a.lower() not in _TABLE_ALIGN for a in raw):
+            raise ValueError("align entries must be l/r/c or left/right/center")
+        aligns = [_TABLE_ALIGN[a.lower()] for a in raw]
+    aligns += ["left"] * (columns - len(aligns))
+    for line in lines_in:
+        line.extend([""] * (columns - len(line)))
+    widths = [max(display_width(line[i]) for line in lines_in) for i in range(columns)]
+    box, junction = _BOX_STYLES[style], _TABLE_JUNCTIONS[style]
+    pad = " " * padding
+
+    def rule(left: str, mid: str, right: str) -> str:
+        return left + mid.join(box["h"] * (w + 2 * padding) for w in widths) + right
+
+    def text_row(line: list[str], header: bool) -> str:
+        cells = [_pad_cell(cell, widths[i], "center" if header else aligns[i]) for i, cell in enumerate(line)]
+        return box["v"] + box["v"].join(pad + cell + pad for cell in cells) + box["v"]
+
+    out = [rule(box["tl"], junction["t"], box["tr"])]
+    if head is not None:
+        out.append(text_row(head, True))
+        out.append(rule(junction["l"], junction["m"], junction["r"]))
+    out.extend(text_row(line, False) for line in body)
+    out.append(rule(box["bl"], junction["b"], box["br"]))
+    return "\n".join(out)
+
+
 def get_template(name: str) -> str:
     """Return a built-in ASCII art template by name."""
     return _ASCII_TEMPLATES.get(name.strip().lower(), "")
@@ -1087,6 +1195,118 @@ def get_template(name: str) -> str:
 def list_templates() -> list[str]:
     """Return the sorted built-in ASCII template names."""
     return sorted(_ASCII_TEMPLATES)
+
+
+# Each glyph is five rows of equal width; "#" marks an ink cell.
+_BANNER_FONT: dict[str, tuple[str, ...]] = {
+    "A": (" ### ", "#   #", "#####", "#   #", "#   #"),
+    "B": ("#### ", "#   #", "#### ", "#   #", "#### "),
+    "C": (" ####", "#    ", "#    ", "#    ", " ####"),
+    "D": ("#### ", "#   #", "#   #", "#   #", "#### "),
+    "E": ("#####", "#    ", "#### ", "#    ", "#####"),
+    "F": ("#####", "#    ", "#### ", "#    ", "#    "),
+    "G": (" ####", "#    ", "#  ##", "#   #", " ####"),
+    "H": ("#   #", "#   #", "#####", "#   #", "#   #"),
+    "I": ("###", " # ", " # ", " # ", "###"),
+    "J": ("  ###", "   # ", "   # ", "#  # ", " ##  "),
+    "K": ("#   #", "#  # ", "###  ", "#  # ", "#   #"),
+    "L": ("#    ", "#    ", "#    ", "#    ", "#####"),
+    "M": ("#   #", "## ##", "# # #", "#   #", "#   #"),
+    "N": ("#   #", "##  #", "# # #", "#  ##", "#   #"),
+    "O": (" ### ", "#   #", "#   #", "#   #", " ### "),
+    "P": ("#### ", "#   #", "#### ", "#    ", "#    "),
+    "Q": (" ### ", "#   #", "# # #", "#  # ", " ## #"),
+    "R": ("#### ", "#   #", "#### ", "#  # ", "#   #"),
+    "S": (" ####", "#    ", " ### ", "    #", "#### "),
+    "T": ("#####", "  #  ", "  #  ", "  #  ", "  #  "),
+    "U": ("#   #", "#   #", "#   #", "#   #", " ### "),
+    "V": ("#   #", "#   #", "#   #", " # # ", "  #  "),
+    "W": ("#   #", "#   #", "# # #", "## ##", "#   #"),
+    "X": ("#   #", " # # ", "  #  ", " # # ", "#   #"),
+    "Y": ("#   #", " # # ", "  #  ", "  #  ", "  #  "),
+    "Z": ("#####", "   # ", "  #  ", " #   ", "#####"),
+    "0": (" ### ", "#  ##", "# # #", "##  #", " ### "),
+    "1": (" # ", "## ", " # ", " # ", "###"),
+    "2": (" ### ", "#   #", "  ## ", " #   ", "#####"),
+    "3": ("#### ", "    #", " ### ", "    #", "#### "),
+    "4": ("#   #", "#   #", "#####", "    #", "    #"),
+    "5": ("#####", "#    ", "#### ", "    #", "#### "),
+    "6": (" ### ", "#    ", "#### ", "#   #", " ### "),
+    "7": ("#####", "    #", "   # ", "  #  ", "  #  "),
+    "8": (" ### ", "#   #", " ### ", "#   #", " ### "),
+    "9": (" ### ", "#   #", " ####", "    #", " ### "),
+    " ": ("   ", "   ", "   ", "   ", "   "),
+    "!": ("#", "#", "#", " ", "#"),
+    "?": (" ### ", "#   #", "  ## ", "     ", "  #  "),
+    ".": (" ", " ", " ", " ", "#"),
+    ",": ("  ", "  ", "  ", " #", "# "),
+    ":": (" ", "#", " ", "#", " "),
+    "'": ("#", "#", " ", " ", " "),
+    "-": ("    ", "    ", "####", "    ", "    "),
+    "_": ("    ", "    ", "    ", "    ", "####"),
+    "+": ("   ", " # ", "###", " # ", "   "),
+    "=": ("    ", "####", "    ", "####", "    "),
+    "/": ("    #", "   # ", "  #  ", " #   ", "#    "),
+    "(": (" #", "# ", "# ", "# ", " #"),
+    ")": ("# ", " #", " #", " #", "# "),
+}
+_BANNER_ROWS = 5
+
+
+def banner_charset() -> str:
+    """Return every character the built-in banner font draws, in a stable order.
+
+    ASCII lowercase ``a``-``z`` are also accepted by ``banner`` and drawn with
+    the uppercase glyphs.
+    """
+    return "".join(_BANNER_FONT)
+
+
+def banner(text: str, *, char: str = "#", spacing: int = 1, fallback: str | None = None) -> str:
+    """Draw single-line ``text`` with the built-in 5-row big-letter font.
+
+    ASCII lowercase letters use the uppercase glyphs. Any other character not
+    in ``banner_charset()`` raises ``ValueError`` unless ``fallback`` names a
+    supported character to draw instead. ``char`` is the ink token; blank
+    cells are padded to its ``display_width`` so wide tokens stay aligned.
+    Trailing spaces are stripped from every row; empty text returns ``""``.
+    """
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    if "\n" in text or "\r" in text:
+        raise ValueError("banner text must be a single line")
+    token = _validate_token(char)
+    if not isinstance(spacing, int) or isinstance(spacing, bool) or spacing < 0:
+        raise ValueError("spacing must be a non-negative integer")
+    if fallback is not None:
+        if not isinstance(fallback, str) or len(fallback) != 1:
+            raise ValueError("fallback must be one supported banner character")
+        fallback = fallback.upper() if "a" <= fallback <= "z" else fallback
+        if fallback not in _BANNER_FONT:
+            raise ValueError(f"fallback {fallback!r} is not in the banner font")
+    if not text:
+        return ""
+    glyphs: list[tuple[str, ...]] = []
+    missing: list[str] = []
+    for ch in text:
+        key = ch.upper() if "a" <= ch <= "z" else ch
+        if key not in _BANNER_FONT:
+            if fallback is None:
+                if ch not in missing:
+                    missing.append(ch)
+                continue
+            key = fallback
+        glyphs.append(_BANNER_FONT[key])
+    if missing:
+        listed = ", ".join(repr(ch) for ch in missing)
+        raise ValueError(f"unsupported banner characters: {listed} (see banner_charset())")
+    blank = " " * display_width(token)
+    gap = blank * spacing
+    rows = []
+    for row in range(_BANNER_ROWS):
+        cells = gap.join(glyph[row] for glyph in glyphs)
+        rows.append("".join(token if cell == "#" else blank for cell in cells).rstrip())
+    return "\n".join(rows)
 
 
 def render_prompt_ascii(
@@ -1333,6 +1553,16 @@ def _cli_padding(value: str) -> int | tuple[int, int]:
     raise argparse.ArgumentTypeError("padding must be N or H,V")
 
 
+def _cli_table(args: argparse.Namespace) -> str:
+    reader = csv.reader(_cli_read(args.input).splitlines(), delimiter="\t" if args.table_format == "tsv" else ",")
+    rows = [row for row in reader if row]
+    if not rows:
+        raise ValueError("table input has no rows")
+    headers = None if args.no_header else rows.pop(0)
+    return render_table(rows, headers=headers, style=args.style, align=args.align)
+
+
+
 def _cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ascii_artist.py",
@@ -1374,6 +1604,21 @@ def _cli_parser() -> argparse.ArgumentParser:
             sub.add_argument("--target", default=None, metavar="TARGET",
                              help="optional convergence label")
         sub.add_argument("--charset", choices=("unicode", "ascii"), default="unicode",help="box-drawing characters or plain ASCII (default: %(default)s)")
+    big = commands.add_parser("banner", help="draw TEXT in the built-in big-letter font", allow_abbrev=False)
+    big.add_argument("text", nargs="+", metavar="TEXT", help="words joined with one space; a-z use A-Z glyphs")
+    big.add_argument("--char", default="#", help="non-empty single-line ink token (default: #)")
+    big.add_argument("--spacing", type=int, default=1, help="blank cells between letters (default: 1)")
+    big.add_argument("--fallback", default=None, help="supported character drawn for unsupported ones (default: error)")
+    table = commands.add_parser("table", help="render CSV/TSV rows as a text table", allow_abbrev=False)
+    table.add_argument("input", nargs="?", default="-", metavar="FILE",
+                       help="UTF-8 CSV/TSV file; - or omitted reads stdin")
+    table.add_argument("--format", dest="table_format", choices=("csv", "tsv"), default="csv",
+                       help="input delimiter (default: %(default)s)")
+    table.add_argument("--no-header", action="store_true", help="treat the first row as data, not headers")
+    table.add_argument("--style", choices=sorted(_BOX_STYLES), default="ascii",
+                       help="border style (default: %(default)s)")
+    table.add_argument("--align", default=None, metavar="SPEC",
+                       help="one of l/r/c per column, e.g. lrc (default: all left)")
     template = commands.add_parser("template", help="print a built-in template", allow_abbrev=False)
     template.add_argument("name", metavar="NAME", help="template name (see: templates)")
     commands.add_parser("templates", help="list built-in template names", allow_abbrev=False)
@@ -1430,6 +1675,10 @@ def main(argv: Iterable[str] | None = None) -> int:
             if any(not item or "\n" in item or "\r" in item for item in args.items):
                 raise ValueError("tree items must be non-empty single-line strings")
             text = tree(args.root, {item: {} for item in args.items}, charset=args.charset)
+        elif args.command == "banner":
+            text = banner(" ".join(args.text), char=args.char, spacing=args.spacing, fallback=args.fallback)
+        elif args.command == "table":
+            text = _cli_table(args)
         elif args.command == "template":
             text = get_template(args.name)
             if not text:

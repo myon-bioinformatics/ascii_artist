@@ -108,11 +108,70 @@ def test_main_guard_subprocess():
     assert (p.returncode, p.stdout, p.stderr) == (0, "**\n**\n", "")
 
 
+def test_banner_cli_matches_api(run):
+    assert run(["banner", "hi", "there"]) == (0, aa.banner("HI THERE") + "\n", "")
+    assert run(["banner", "A", "--char", "%", "--spacing", "2"]) == (0, aa.banner("A", char="%", spacing=2) + "\n", "")
+    assert run(["banner", "é", "--fallback", "?"]) == (0, aa.banner("?") + "\n", "")
+
+
+@pytest.mark.parametrize("argv", [["banner", "é"], ["banner", "A", "--spacing", "-1"],
+                                  ["banner", "A", "--fallback", "**"], ["banner", "A", "--char", ""]])
+def test_banner_cli_invalid_exit_2_one_line(run, argv):
+    rc, out, err = run(argv)
+    assert (rc, out) == (2, "")
+    assert err.startswith("ascii_artist.py: error: ") and err.count("\n") == 1
+
+
+def test_table_cli_csv_tsv_and_file(run, tmp_path):
+    want = aa.render_table([["りんご", "120"]], headers=["名前", "値段"], align="lr") + "\n"
+    assert run(["table", "--align", "lr"], "名前,値段\nりんご,120\n") == (0, want, "")
+    assert run(["table", "-", "--format", "tsv", "--align", "lr"], "名前\t値段\n\nりんご\t120\n") == (0, want, "")
+    f = tmp_path / "t.csv"
+    f.write_text('a,"b, c"\n', encoding="utf-8")
+    assert run(["table", str(f), "--no-header", "--style", "single"]) == (
+        0, aa.render_table([["a", "b, c"]], style="single") + "\n", "")
+
+
+@pytest.mark.parametrize("argv,stdin", [(["table"], ""), (["table", "--align", "x"], "a\n"),
+                                        (["table", "--align", "lll"], "a,b\n")])
+def test_table_cli_invalid_exit_2_one_line(run, argv, stdin):
+    rc, out, err = run(argv, stdin)
+    assert (rc, out) == (2, "")
+    assert err.startswith("ascii_artist.py: error: ") and err.count("\n") == 1
+
+
+def test_table_cli_unreadable_file_exit_1(run, tmp_path):
+    rc, out, err = run(["table", str(tmp_path / "missing.csv")])
+    assert (rc, out) == (1, "") and "missing.csv" in err
+
+
+def test_documented_public_api_matches_all():
+    import json, re
+    guide = json.loads((ROOT / "docs" / "guide.page.json").read_text(encoding="utf-8"))
+    texts = []
+    stack = [guide]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+        elif isinstance(node, str) and node.startswith("公開 API（__all__）は次のとおりです。"):
+            texts.append(node)
+    assert len(texts) == 1
+    listed = texts[0].split("。")[1].split(" / ")
+    assert listed == list(aa.__all__)
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    section = readme.split("## Current API", 1)[1].split("\n## ", 1)[0]
+    assert sorted(re.findall(r"`([A-Za-z0-9_]+)(?:\(\))?`", section)) == sorted(aa.__all__)
+
+
 def test_public_api_unchanged():
     assert "main" not in aa.__all__
-    # Existing exports remain; card-flow migration adds six explicit APIs.
+    # Existing exports remain; card-flow migration adds six APIs, banner/table add three.
     original = {'from_dict', 'to_markdown_outline', 'to_adjacency', 'to_dot', 'UNSUPPORTED', 'to_edges', 'from_dot', 'to_web_ui_v1_html', 'to_mermaid', 'Node', 'Diagram', 'from_edges', 'from_mermaid', 'SUPPORTED', 'inventory', 'from_markdown_outline', 'render_diagram', 'generate_diamond', 'from_adjacency', 'diagram', 'to_dict', 'branch', 'render_prompt_ascii', 'flow', 'from_json', 'generate_triangle', 'to_json', 'generate_box', 'list_templates', 'get_template', 'Edge', 'generate_square', 'tree'}
-    additions = {"validate_flow", "flow_html", "flow_mermaid", "flow_document", "flow_css", "patch_flow"}
+    additions = {"validate_flow", "flow_html", "flow_mermaid", "flow_document", "flow_css", "patch_flow",
+                 "banner", "banner_charset", "render_table"}
     assert set(aa.__all__) == original | additions
     assert len(aa.__all__) == len(original) + len(additions)
 
