@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-page/1",
   "title": "ascii_artist 利用ガイド",
-  "theme": "auto",
+  "theme": "modern",
   "description": "テキストアートの生成と、テキスト図の変換（標準ライブラリのみ）。",
   "icon": "./icon.png",
   "favicon": "./favicon.png",
