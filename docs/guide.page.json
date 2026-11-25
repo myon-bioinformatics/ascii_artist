@@ -7,19 +7,6 @@
   "favicon": "./favicon.png",
   "blocks": [
     {
-      "type": "links",
-      "items": [
-        {
-          "label": "🏠 ポートフォリオ",
-          "href": "https://myon-bioinformatics.github.io/"
-        },
-        {
-          "label": "🐙 GitHub リポジトリ",
-          "href": "https://github.com/myon-bioinformatics/ascii_artist"
-        }
-      ]
-    },
-    {
       "type": "badges",
       "items": [
         "📄 単一ファイル",
@@ -31,22 +18,6 @@
       "type": "tabs",
       "id": "guide",
       "tabs": [
-        {
-          "label": "🎞 GIF デモ",
-          "blocks": [
-            {
-              "type": "card",
-              "title": "🧪 ブラウザテスト",
-              "blocks": [
-                {
-                  "type": "image",
-                  "src": "./demos/browser.gif",
-                  "alt": "ブラウザテストを実際の Chromium で動かした様子"
-                }
-              ]
-            }
-          ]
-        },
         {
           "label": "🧩 機能一覧",
           "blocks": [
@@ -296,6 +267,22 @@
                       "text": "$ python ascii_artist.py branch root left right --target end\n    root\n      │\n  ┌───┼───┐\n  ↓       ↓\nleft    right\n  └───┴───┘\n      ↓\n     end"
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "🎞 GIF デモ",
+          "blocks": [
+            {
+              "type": "card",
+              "title": "🧪 ブラウザテスト",
+              "blocks": [
+                {
+                  "type": "image",
+                  "src": "./demos/browser.gif",
+                  "alt": "ブラウザテストを実際の Chromium で動かした様子"
                 }
               ]
             }
