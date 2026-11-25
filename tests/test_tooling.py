@@ -188,13 +188,8 @@ class RepositoryDiagnosticsTests(unittest.TestCase):
             self.assertEqual(json.loads((out / diagnostics.JSON_NAME).read_text(encoding="utf-8"))["metadata"], record)
             html = (out / diagnostics.HTML_NAME).read_text(encoding="utf-8")
             self.assertIn('<link rel="icon" type="image/png" href="./favicon.png">', html)
-            source = (ROOT / "docs/brand/favicon.png").read_bytes()
-            self.assertTrue(source.startswith(b"\x89PNG\r\n\x1a\n"))
-            self.assertEqual((out / "favicon.png").read_bytes(), source)
-            # Rebuilding replaces an old icon rather than preserving stale assets.
-            (out / "favicon.png").write_bytes(b"old icon")
-            diagnostics.write_outputs(out, probe=False)
-            self.assertEqual((out / "favicon.png").read_bytes(), source)
+            # ♻️ ./icon.png and ./favicon.png come from CaChereCyCle when Pages is built; no copy is written here
+            self.assertFalse((out / "favicon.png").exists() or (out / "icon.png").exists())
 
     def test_page_is_the_shared_self_contained_renderer(self):
         html = diagnostics.page_html()
@@ -350,8 +345,8 @@ def test_sample_uses_real_renderer_and_escapes_html(tmp_path):
     assert '<link rel="icon" type="image/png" href="./favicon.png">' in html
     assert '<link rel="apple-touch-icon" href="./icon.png">' in html
     assert 'src="./icon.png"' in html
-    assert (tmp_path / "icon.png").read_bytes() == (ROOT / "docs/brand/icon.png").read_bytes()
-    assert (tmp_path / "favicon.png").read_bytes() == (ROOT / "docs/brand/favicon.png").read_bytes()
+    # ♻️ ./icon.png and ./favicon.png come from CaChereCyCle when Pages is built; no copy is written here
+    assert not (tmp_path / "icon.png").exists() and not (tmp_path / "favicon.png").exists()
 
 
 def test_generic_export_does_not_inherit_pages_branding():

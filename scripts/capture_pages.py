@@ -11,7 +11,6 @@ from functools import partial; from http.server import SimpleHTTPRequestHandler,
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import ascii_artist as art
-from scripts.ascii_artist_repository_diagnostics import write_favicon
 
 
 def sample_output() -> str:
@@ -21,7 +20,6 @@ def sample_output() -> str:
 def write_sample(site: Path) -> str:
     """The evidence page: ascii_artist's own semantic HTML (stdlib-only library, CSS consumer-owned) inside
     PySaiyanWeBoo's page shell, so the page is self-contained and styled like the other repositories'."""
-    write_favicon(site)
     output = sample_output()
     import pysaiyanweboo  # the pinned git dependency in the dev group
 
