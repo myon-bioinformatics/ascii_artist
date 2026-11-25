@@ -290,6 +290,7 @@
                         "title": "🔠 大きな文字",
                         "command": "python3 ascii_artist.py banner hi",
                         "expect": "#   # ###\n#   #  #\n#####  #\n#   #  #\n#   # ###",
+                        "expect_stdout_contains": "#   # ###\n#   #  #\n#####  #\n#   #  #\n#   # ###",
                         "run": true
                       },
                       {
@@ -297,6 +298,7 @@
                         "title": "📊 CSV → 罫線の表",
                         "command": "printf 'name,yen\\napple,120\\n' | python3 ascii_artist.py table --align lr",
                         "expect": "+-------+-----+\n| name  | yen |\n+-------+-----+\n| apple | 120 |\n+-------+-----+",
+                        "expect_stdout_contains": "+-------+-----+\n| name  | yen |\n+-------+-----+\n| apple | 120 |\n+-------+-----+",
                         "run": true
                       },
                       {
@@ -304,6 +306,7 @@
                         "title": "🔀 流れ図",
                         "command": "python3 ascii_artist.py flow a b c",
                         "expect": "a\n ↓\nb\n ↓\nc",
+                        "expect_stdout_contains": "a\n ↓\nb\n ↓\nc",
                         "run": true
                       }
                     ]
