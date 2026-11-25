@@ -337,7 +337,7 @@ def test_sample_uses_real_renderer_and_escapes_html(tmp_path):
     text = capture_pages.write_sample(tmp_path)
     assert "Request <&>" in text and "Parse" in text and "Render" in text and "Done" in text
     assert "( o.o )" in text
-    html = (tmp_path / "ascii-output.html").read_text()
+    html = (tmp_path / "ascii-output.html").read_text(encoding="utf-8")
     assert "Request &lt;&amp;&gt;" in html
     assert "Request <&>" not in html
     assert '<pre class="ui-output">' in html
@@ -387,7 +387,7 @@ def test_card_samples_use_canonical_renderer_and_preserve_boundaries(tmp_path):
 
 
 def test_pages_lane_requires_original_and_card_evidence():
-    workflow = (ROOT / ".github/workflows/pages.yml").read_text()
+    workflow = (ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
     captures = 'ascii-output.png,repository-diagnostics.png,' + ','.join(capture_pages.CARD_CAPTURES)
     assert '--captures ' + captures in workflow
     assert 'python scripts/capture_pages.py' in workflow
