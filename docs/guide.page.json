@@ -273,6 +273,47 @@
           ]
         },
         {
+          "label": "🔬 検証ガイド",
+          "blocks": [
+            {
+              "type": "runbook",
+              "id": "verify",
+              "books": [
+                {
+                  "label": "⚡ そのまま",
+                  "intro": "📋 コピーして手元で試し、結果を記録できます。🤖 の手順は、Pages の公開で実際に動かした結果も載ります。",
+                  "runbook": {
+                    "key": "ascii_artist/verify",
+                    "steps": [
+                      {
+                        "id": "banner",
+                        "title": "🔠 大きな文字",
+                        "command": "python3 ascii_artist.py banner hi",
+                        "expect": "#   # ###\n#   #  #\n#####  #\n#   #  #\n#   # ###",
+                        "run": true
+                      },
+                      {
+                        "id": "table",
+                        "title": "📊 CSV → 罫線の表",
+                        "command": "printf 'name,yen\\napple,120\\n' | python3 ascii_artist.py table --align lr",
+                        "expect": "+-------+-----+\n| name  | yen |\n+-------+-----+\n| apple | 120 |\n+-------+-----+",
+                        "run": true
+                      },
+                      {
+                        "id": "flow",
+                        "title": "🔀 流れ図",
+                        "command": "python3 ascii_artist.py flow a b c",
+                        "expect": "a\n ↓\nb\n ↓\nc",
+                        "run": true
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "label": "🎞 GIF デモ",
           "blocks": [
             {
