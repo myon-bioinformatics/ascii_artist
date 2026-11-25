@@ -89,15 +89,8 @@ def page_html() -> str:
     return pysaiyanweboo.repository_diagnostics_page(REPOSITORY)
 
 
-def write_favicon(out_dir: Path) -> None:
-    """Copy repository branding for Pages, never for library exports."""
-    (out_dir / "favicon.png").write_bytes((ROOT / "docs/brand/favicon.png").read_bytes())
-    (out_dir / "icon.png").write_bytes((ROOT / "docs/brand/icon.png").read_bytes())
-
-
 def write_outputs(out_dir: Path, *, probe: bool = True) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    write_favicon(out_dir)
     record = build_record()
     payload = build_payload(record, probe=probe)
     (out_dir / JSON_NAME).write_text(

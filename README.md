@@ -1,10 +1,10 @@
 # ascii_artist
 
 <p align="center">
-  <img src="docs/brand/icon.png" alt="ascii_artist icon" width="160" />
+  <img src="https://myon-bioinformatics.github.io/ascii_artist/icon.png" alt="ascii_artist icon" width="160" />
 </p>
 
-[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)
+[Icon](https://myon-bioinformatics.github.io/ascii_artist/icon.png) · [Favicon](https://myon-bioinformatics.github.io/ascii_artist/favicon.png)
 
 **Python compatibility:** supports Python 3.11+, declared in `pyproject.toml`; CI tests Python 3.11–3.14.
 
