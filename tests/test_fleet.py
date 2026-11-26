@@ -131,7 +131,7 @@ def test_supported_runtime_versions_keep_existing_os_coverage():
             python: "3.11"
           - os: macos-latest
             python: "3.14"
-        exclude: ${{ github.event_name == 'pull_request' && fromJSON('[{"python":"3.11"},{"python":"3.12"},{"python":"3.13"},{"os":"windows-latest","python":"3.14"},{"os":"macos-latest","python":"3.14"}]') || fromJSON('[]') }}
+        exclude: ${{ github.event_name == 'pull_request' && fromJSON('[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.12"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.11"},{"os":"windows-latest","python":"3.14"},{"os":"macos-latest","python":"3.11"},{"os":"macos-latest","python":"3.14"}]') || fromJSON('[]') }}
 '''
     assert "runs-on: ${{ matrix.os }}" in block
     assert "fail-fast: false" in block
