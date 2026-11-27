@@ -7,7 +7,7 @@ import pytest
 from vendor import fleet_check as fleet
 
 ROOT = fleet.repo_root(__file__)
-PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
+PARENT_WORKFLOW_PIN = "43cfe1df924ea96ca44f47a6771c18102c38f7f3"
 # Node sources and the shared checks stay on accepted upstream commits with exact bytes.
 ACCEPTED = {
     "vendor/py_launch.cjs": "de63762d8485e4d398a651715d34ebf4a04c23f2",
