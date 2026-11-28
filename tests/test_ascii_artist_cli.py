@@ -9,6 +9,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import ascii_artist as aa  # noqa: E402
+from vendor.cli_args import run_cli  # noqa: E402
 
 
 def _cli(argv, stdin="", monkeypatch=None, capsys=None):
@@ -103,8 +104,8 @@ def test_unreadable_file_exit_1(run, tmp_path):
 
 
 def test_main_guard_subprocess():
-    p = subprocess.run([sys.executable, "-S", str(ROOT / "ascii_artist.py"), "square", "2"],
-                       capture_output=True, text=True, encoding="utf-8", timeout=60)
+    p = run_cli(ROOT / "ascii_artist.py", "square", "2",
+                python_options=("-S",), timeout=60)
     assert (p.returncode, p.stdout, p.stderr) == (0, "**\n**\n", "")
 
 
