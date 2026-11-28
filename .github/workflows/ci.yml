@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/myon-bioinformatics
-          ref: 26c442bc51b8a2837fe2556782b2937f396932af
+          ref: main
           path: .vendor-sync-tools
           persist-credentials: false
       - name: Verify checked-in vendor copies
@@ -59,7 +59,7 @@ jobs:
 
   changes:
     name: Change detection
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@27dedd9651efc816fa88d8922adb5f242725df69
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@main
 
   test:
     timeout-minutes: 30
@@ -102,7 +102,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/myon-bioinformatics
-          ref: 26c442bc51b8a2837fe2556782b2937f396932af
+          ref: main
           path: .vendor-sync-tools
           persist-credentials: false
       - name: Download resolved vendor snapshot
@@ -120,24 +120,14 @@ jobs:
         run: |
           uv sync --locked --python "$(python -c 'import sys; print(sys.executable)')"
           python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
-      - name: Fetch pinned xprobe JUnit importer
+      - name: Fetch xprobe JUnit importer from main
         env:
-          XPROBE_COMMIT: 7e7015b2df69ad446b968f6fa49711b5b1dbdd3f
-          XPROBE_BLOB: dbc5b7d55005d6288c072a7612584d6170c216f4
+          XPROBE_COMMIT: main  # 🔁 own sources follow main
         run: |
           set -euo pipefail
           mkdir -p build/shared
           rm -f build/shared/xprobe.py
           curl -fsSLo build/shared/xprobe.py.tmp "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/$XPROBE_COMMIT/xprobe.py"
-          python - <<'PY'
-          import hashlib
-          import os
-          from pathlib import Path
-          data = Path("build/shared/xprobe.py.tmp").read_bytes()
-          actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
-          if actual != os.environ["XPROBE_BLOB"]:
-              raise SystemExit("Importer verification failed")
-          PY
           mv build/shared/xprobe.py.tmp build/shared/xprobe.py
       - name: Compile
         run: python -m py_compile ascii_artist.py
@@ -188,7 +178,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@27dedd9651efc816fa88d8922adb5f242725df69
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@main
     with:
       commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       expected-reports: '["junit-py3.11/pytest-3.11.xml","junit-py3.12/pytest-3.12.xml","junit-py3.13/pytest-3.13.xml","junit-py3.14/pytest-3.14.xml"]'
@@ -235,7 +225,7 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: myon-bioinformatics/myon-bioinformatics
-        ref: 26c442bc51b8a2837fe2556782b2937f396932af
+        ref: main
         path: .vendor-sync-tools
         persist-credentials: false
     - name: Verify checked-in vendor copies
@@ -251,24 +241,14 @@ jobs:
       run: |
         uv sync --locked --python "$(python -c 'import sys; print(sys.executable)')"
         python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
-    - name: Fetch pinned xprobe JUnit importer
+    - name: Fetch xprobe JUnit importer from main
       env:
-        XPROBE_COMMIT: 7e7015b2df69ad446b968f6fa49711b5b1dbdd3f
-        XPROBE_BLOB: dbc5b7d55005d6288c072a7612584d6170c216f4
+        XPROBE_COMMIT: main  # 🔁 own sources follow main
       run: |
         set -euo pipefail
         mkdir -p build/shared
         rm -f build/shared/xprobe.py
         curl -fsSLo build/shared/xprobe.py.tmp "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/$XPROBE_COMMIT/xprobe.py"
-        python - <<'PY'
-        import hashlib
-        import os
-        from pathlib import Path
-        data = Path("build/shared/xprobe.py.tmp").read_bytes()
-        actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
-        if actual != os.environ["XPROBE_BLOB"]:
-            raise SystemExit("Importer verification failed")
-        PY
         mv build/shared/xprobe.py.tmp build/shared/xprobe.py
     - name: Compile
       run: python -m py_compile ascii_artist.py

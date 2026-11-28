@@ -3,17 +3,17 @@
   "files": [
     {
       "repository": "myon-bioinformatics/mcp-toolcall-lab",
-      "ref": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
-      "commit": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
+      "ref": "main",
+      "commit": "26a8d9eafc883b424dd8ea3028aa90780a90df3a",
       "source": "src/mcp_toolcall_lab/github_public_resolver.py",
       "destination": "vendor/github_public_resolver.py",
-      "blob_sha": "5de18c3334f4c6d2345a58863d3eb021d6889f3f",
-      "sha256": "49c5e75603b987e57f61f99295f80565017a83bc5a57dbb516c81d30f585140f"
+      "blob_sha": "6730023ac94a6adbf09622af126a161fbf690f32",
+      "sha256": "beba5ee09357f137e57c9eb617de95a20ccf09d2ece8f81cb240c3f3716e8e07"
     },
     {
       "repository": "myon-bioinformatics/mcp-toolcall-lab",
-      "ref": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
-      "commit": "30121e7f713fb689a9a3d0f0b7a4d3444831864e",
+      "ref": "main",
+      "commit": "26a8d9eafc883b424dd8ea3028aa90780a90df3a",
       "source": "LICENSE",
       "destination": "vendor/mcp-toolcall-lab-LICENSE",
       "blob_sha": "4ec4989b801bf1a3df6184d21f79e6e7ed5931f6",
@@ -21,8 +21,8 @@
     },
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "1eda992aa6fa31a902e2c06428e53ab17e8fe3c1",
-      "commit": "1eda992aa6fa31a902e2c06428e53ab17e8fe3c1",
+      "ref": "main",
+      "commit": "27dedd9651efc816fa88d8922adb5f242725df69",
       "source": "LICENSE",
       "destination": "vendor/myon-bioinformatics-LICENSE",
       "blob_sha": "4ec4989b801bf1a3df6184d21f79e6e7ed5931f6",
@@ -30,17 +30,17 @@
     },
     {
       "repository": "myon-bioinformatics/gh_identity",
-      "ref": "e70eb0080c7e1aa42212439d6b69d48ce937d942",
-      "commit": "e70eb0080c7e1aa42212439d6b69d48ce937d942",
+      "ref": "main",
+      "commit": "63c857e3f21eebc9fadd976beda407310b4abbc9",
       "source": "gh_identity.py",
       "destination": "vendor/gh_identity.py",
-      "blob_sha": "7e93336bc21c86c1d701b68526a00f188f24e2e7",
-      "sha256": "01cea3d0a1d04b07e60dc3e6a50a801f1be88ff23e60b774c60996a4f1f28ccb"
+      "blob_sha": "62c18f96d93136c464c0a2e1631cb5fc1102d2c5",
+      "sha256": "dd25f0154cb4d4799f0a8a8717d0cb023cec72d04d2f206da748964047a82220"
     },
     {
       "repository": "myon-bioinformatics/gh_identity",
-      "ref": "c6b52a29d8cd1dce0ebe0c4288cd16b0e4b84b96",
-      "commit": "c6b52a29d8cd1dce0ebe0c4288cd16b0e4b84b96",
+      "ref": "main",
+      "commit": "63c857e3f21eebc9fadd976beda407310b4abbc9",
       "source": "LICENSE",
       "destination": "vendor/gh_identity-LICENSE",
       "blob_sha": "4ec4989b801bf1a3df6184d21f79e6e7ed5931f6",
@@ -48,8 +48,8 @@
     },
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "de63762d8485e4d398a651715d34ebf4a04c23f2",
-      "commit": "de63762d8485e4d398a651715d34ebf4a04c23f2",
+      "ref": "main",
+      "commit": "27dedd9651efc816fa88d8922adb5f242725df69",
       "source": "py_launch.cjs",
       "destination": "vendor/py_launch.cjs",
       "blob_sha": "caf5ef6d42bd572e9cfde84ee570e3036edc4726",
@@ -57,16 +57,16 @@
     },
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "20de01921e50e9339aa9271b0547a5be7649b3b3",
-      "commit": "20de01921e50e9339aa9271b0547a5be7649b3b3",
+      "ref": "main",
+      "commit": "27dedd9651efc816fa88d8922adb5f242725df69",
       "source": "fleet_check.py",
       "destination": "vendor/fleet_check.py",
-      "blob_sha": "c80e3bd72d79c9dda44ff6136d2ff734dcb59c8f",
-      "sha256": "23b8c95132fd6f24ccef65290f46aef7c6b3c5747090b5d0622b1a3cc573ac3b"
+      "blob_sha": "2a7973ab7485c8a5cac36d3e43796ef6496ea9ff",
+      "sha256": "71c54df9de11c70312ff9580f0633cfd50252ad6738829d05ce92a46e3b18029"
     },
     {
       "repository": "myon-bioinformatics/cli_args",
-      "ref": "55d8d0bfe699869c2439ff9ca86abfd3aa879846",
+      "ref": "main",
       "commit": "55d8d0bfe699869c2439ff9ca86abfd3aa879846",
       "source": "cli_args.py",
       "destination": "vendor/cli_args.py",
@@ -75,7 +75,7 @@
     },
     {
       "repository": "myon-bioinformatics/cli_args",
-      "ref": "55d8d0bfe699869c2439ff9ca86abfd3aa879846",
+      "ref": "main",
       "commit": "55d8d0bfe699869c2439ff9ca86abfd3aa879846",
       "source": "LICENSE",
       "destination": "vendor/cli_args-LICENSE",
