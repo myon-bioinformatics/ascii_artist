@@ -3,6 +3,7 @@
 Shared fleet checks (locks, pins, setup-uv, vendor staging, Node parity) live in ``tests/test_fleet.py``; this file keeps the
 repository's own CI, ``scripts/`` and Pages expectations. Browser dependencies are never imported here.
 """
+import importlib.util
 import json, os, platform, shlex, shutil, subprocess, sys, tempfile, unittest
 from pathlib import Path; from types import SimpleNamespace; from unittest import mock
 
@@ -10,7 +11,19 @@ import pytest
 
 from scripts import ascii_artist_repository_diagnostics as diagnostics
 from scripts import capture_pages
-from vendor import fleet_check as fleet
+
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, Path(__file__).resolve().parents[1] / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+fleet = load_vendored("ascii_artist_fleet_check", "vendor/fleet_check.py")
 
 ROOT = fleet.repo_root(__file__)
 

@@ -3,13 +3,26 @@
 Stdlib unittest (also runs under ``python -S -m unittest``). The Node 26+ adapter is optional:
 parity cases skip it, and mixed cases omit its branch, when it is unavailable (``vendor/fleet_check.node``).
 """
+import importlib.util
 import copy, json, os, subprocess, sys, tempfile, unittest
 from html.parser import HTMLParser; from pathlib import Path
 
 from ascii_artist import (FLOW_MAX_INPUT, FLOW_MAX_PATCH, flow_css, flow_document,
                           flow_html, flow_mermaid, from_dict, patch_flow, validate_flow)
-from vendor import fleet_check as fleet
-from vendor.cli_args import run_cli
+
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, Path(__file__).resolve().parents[1] / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+fleet = load_vendored("ascii_artist_fleet_check", "vendor/fleet_check.py")
+run_cli = load_vendored("ascii_artist_cli_args", "vendor/cli_args.py").run_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = json.loads((ROOT / "examples/pr-flow.json").read_text(encoding="utf-8"))
