@@ -1,5 +1,6 @@
 name: Stdlib runtime compatibility
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -63,24 +64,14 @@ jobs:
           prune-cache: true
       - name: Sync locked development environment
         run: uv sync --locked --python "$(python -c 'import sys; print(sys.executable)')"
-      - name: Fetch pinned xprobe JUnit importer
+      - name: Fetch xprobe JUnit importer from main
         env:
-          XPROBE_COMMIT: 7e7015b2df69ad446b968f6fa49711b5b1dbdd3f
-          XPROBE_BLOB: dbc5b7d55005d6288c072a7612584d6170c216f4
+          XPROBE_COMMIT: main  # 🔁 own sources follow main
         run: |
           set -euo pipefail
           mkdir -p build/shared
           rm -f build/shared/xprobe.py
           curl -fsSLo build/shared/xprobe.py.tmp "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/$XPROBE_COMMIT/xprobe.py"
-          python - <<'PY'
-          import hashlib
-          import os
-          from pathlib import Path
-          data = Path("build/shared/xprobe.py.tmp").read_bytes()
-          actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
-          if actual != os.environ["XPROBE_BLOB"]:
-              raise SystemExit("Importer verification failed")
-          PY
           mv build/shared/xprobe.py.tmp build/shared/xprobe.py
       - name: Run portability tests with raw JUnit
         env:
@@ -101,9 +92,21 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@27c46411c0a07d9b4d0f1ad5751ed1bb9e869b5c
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@main
     with:
       commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       expected-reports: '["junit-portability-windows-latest/portability-windows-latest.xml","junit-portability-macos-latest/portability-macos-latest.xml"]'
       artifact-pattern: "junit-portability-*"
       output-artifact: "portability-identity"
+
+  # 🔁 own sources follow main: on schedule / manual run, take main of own repositories and push to main
+  follow-main:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-follow-main.yml@main
+    permissions:
+      contents: write
+    with:
+      node-version: "26"
+      check: |
+        mkdir -p build/shared && curl -fsSLo build/shared/xprobe.py https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/xprobe.py
+        PYTHONPATH=build/shared uv run --locked python -m pytest -q

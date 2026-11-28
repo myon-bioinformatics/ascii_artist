@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/BrowserTestKit
-          ref: 3a054c777a98300ee272e4458990b849c32a7ef0
+          ref: main
           path: .browser-test-kit
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -95,7 +95,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/CaChereCyCle
-          ref: 066016de91b5be00b5ab7c1c8e532c90d4b9911b
+          ref: main
           path: .cacherecycle
           persist-credentials: false
       - name: Build Pages tree

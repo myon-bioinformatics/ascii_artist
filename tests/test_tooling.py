@@ -31,7 +31,7 @@ ROOT = fleet.repo_root(__file__)
 # ──── ci vendor lock: vendor-lock-only CI (no promote/update or legacy provenance projection) ────
 
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
-VENDOR_SYNC_PIN = "26c442bc51b8a2837fe2556782b2937f396932af"
+VENDOR_SYNC_PIN = "main"  # 🔁 own sources follow main (2026-11-28)
 TEST_JOB = "test"
 
 

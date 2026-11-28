@@ -22,12 +22,12 @@ fleet = load_vendored("ascii_artist_fleet_check", "vendor/fleet_check.py")
 
 
 ROOT = fleet.repo_root(__file__)
-PARENT_WORKFLOW_PIN = "27c46411c0a07d9b4d0f1ad5751ed1bb9e869b5c"
+PARENT_WORKFLOW_PIN = "main"  # 🔁 own sources follow main (2026-11-28)
 # Node sources and the shared checks stay on accepted upstream commits with exact bytes.
 ACCEPTED = {
-    "vendor/py_launch.cjs": "de63762d8485e4d398a651715d34ebf4a04c23f2",
-    "vendor/fleet_check.py": "20de01921e50e9339aa9271b0547a5be7649b3b3",
-}
+    "vendor/py_launch.cjs",
+    "vendor/fleet_check.py",
+}  # 🔁 locked destinations; they follow main
 SETUP_UV = "astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2"
 JOBS = {
     ("ci.yml", "resolve-vendor"): "3.15",
@@ -69,7 +69,7 @@ def _check_vendor_bindings(root):
     entries = json.loads((root / "vendor.lock.json").read_text(encoding="utf-8"))["files"]
     folded = {row["destination"].casefold() for row in entries}
     assert len(folded) == len(entries), "duplicate vendor destination (case-insensitive)"
-    rows = fleet.check_lock(root, commits=ACCEPTED)
+    rows = fleet.check_lock(root)
     for where, origin in _PARENT_BINDINGS.items():
         assert where in rows, f"missing vendor binding: {where}"
         assert (rows[where]["repository"], rows[where]["source"]) == origin, where
