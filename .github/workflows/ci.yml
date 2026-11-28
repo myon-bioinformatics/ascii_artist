@@ -35,6 +35,10 @@ jobs:
           repository: myon-bioinformatics/myon-bioinformatics
           ref: main
           path: .vendor-sync-tools
+          sparse-checkout: |
+            /vendor_sync.py
+            /vendor_stage.py
+          sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Verify checked-in vendor copies
         run: python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
@@ -104,6 +108,10 @@ jobs:
           repository: myon-bioinformatics/myon-bioinformatics
           ref: main
           path: .vendor-sync-tools
+          sparse-checkout: |
+            /vendor_sync.py
+            /vendor_stage.py
+          sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Download resolved vendor snapshot
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -227,6 +235,10 @@ jobs:
         repository: myon-bioinformatics/myon-bioinformatics
         ref: main
         path: .vendor-sync-tools
+        sparse-checkout: |
+          /vendor_sync.py
+          /vendor_stage.py
+        sparse-checkout-cone-mode: false
         persist-credentials: false
     - name: Verify checked-in vendor copies
       run: python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
