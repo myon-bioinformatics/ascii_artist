@@ -9,6 +9,7 @@ from html.parser import HTMLParser; from pathlib import Path
 from ascii_artist import (FLOW_MAX_INPUT, FLOW_MAX_PATCH, flow_css, flow_document,
                           flow_html, flow_mermaid, from_dict, patch_flow, validate_flow)
 from vendor import fleet_check as fleet
+from vendor.cli_args import run_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = json.loads((ROOT / "examples/pr-flow.json").read_text(encoding="utf-8"))
@@ -61,8 +62,8 @@ class FlowDiagramTests(unittest.TestCase):
                 validate_flow(item)
 
     def test_cli_mermaid(self):
-        run = subprocess.run([sys.executable, "-S", "ascii_artist.py", "flow-cards", "--format", "mermaid"],
-                             input=json.dumps(SPEC), text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
+        run = run_cli("ascii_artist.py", "flow-cards", "--format", "mermaid",
+                      python_options=("-S",), stdin=json.dumps(SPEC), cwd=ROOT)
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertTrue(run.stdout.startswith("```mermaid\nflowchart TB\n"))
         self.assertIn("T0 --> T1", run.stdout)
@@ -114,8 +115,8 @@ class FlowPatchTests(unittest.TestCase):
     def test_python_node_cli_parity(self):
         data = {"spec": SPEC, "patch": [{"path": "/steps/1/note", "value": "CI完了"}]}
         input_text = json.dumps(data, ensure_ascii=False)
-        py = subprocess.run([sys.executable, "-S", "ascii_artist.py", "flow-patch"], input=input_text,
-                            text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
+        py = run_cli("ascii_artist.py", "flow-patch", python_options=("-S",),
+                     stdin=input_text, cwd=ROOT)
         node = subprocess.run([*NODE_ENTRY, "flow-patch"], input=input_text,
                               text=True, encoding="utf-8", capture_output=True, cwd=ROOT)
         self.assertEqual(py.returncode, 0, py.stderr)
