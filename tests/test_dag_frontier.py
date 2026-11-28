@@ -2,13 +2,26 @@
 
 The benchmark parity checks must run even with Python optimization enabled (``vendor/fleet_check.run_main``).
 """
+import importlib.util
 import json, random, sys, unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import ascii_artist as art
-from vendor import fleet_check as fleet
+
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, Path(__file__).resolve().parents[1] / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+fleet = load_vendored("ascii_artist_fleet_check", "vendor/fleet_check.py")
 
 
 def reference(value):
