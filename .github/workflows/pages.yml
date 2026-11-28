@@ -119,7 +119,7 @@ jobs:
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          python3 -S .browser-test-kit/scripts/check_capture_evidence.py test-results/pages \
+          python3 -S .browser-test-kit/tools/btk.py check-capture-evidence test-results/pages \
             --expect chromium --captures ascii-output.png,repository-diagnostics.png,flow-github-like-320.png,flow-github-like-1280.png,flow-modern-320.png,flow-modern-1280.png \
             --sha "$EXPECTED_SHA" --canonical test-results/pages/canonical.json \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT"
