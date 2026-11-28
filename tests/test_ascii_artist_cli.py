@@ -106,7 +106,7 @@ def test_unreadable_file_exit_1(run, tmp_path):
 def test_main_guard_subprocess():
     p = run_cli(ROOT / "ascii_artist.py", "square", "2",
                 python_options=("-S",), timeout=60)
-    assert (p.returncode, p.stdout, p.stderr) == (0, "**\n**\n", "")
+    assert (p.returncode, p.stdout.replace("\r\n", "\n"), p.stderr) == (0, "**\n**\n", "")
 
 
 def test_banner_cli_matches_api(run):
